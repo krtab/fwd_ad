@@ -25,6 +25,10 @@ impl Dual {
     pub fn diffs_mut(&mut self) -> &mut [f64] {
         &mut self.0[1..]
     }
+
+    pub fn ndiffs(&self) -> usize {
+        self.0.len() - 1
+    }
 }
 
 mod impl_ops_dual;
@@ -50,5 +54,11 @@ mod tests {
         let y = Dual::constant(17., 2);
         let res = (x + &y) * &y;
         assert_eq!(res, Dual(vec![(42. + 17.) * 17., 0., 0.]));
+    }
+
+    #[test]
+    fn test_size() {
+        let x = Dual::constant(0., 42);
+        assert_eq!(x.ndiffs(), 42);
     }
 }

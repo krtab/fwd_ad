@@ -1,12 +1,22 @@
 use crate::Dual;
 use std::ops;
 
+macro_rules! check_same_ndiffs {
+    ($x : ident , $y : ident) => {
+        assert_eq!(
+            $x.ndiffs(),
+            $y.ndiffs(),
+            "Duals have different numbers of diffs: {} =/= {}.",
+            $x.ndiffs(),
+            $y.ndiffs()
+        );
+    };
+}
+
 impl ops::AddAssign<&Dual> for Dual {
-    fn add_assign(&mut self, rhs: &Dual)  {
-        self.0
-            .iter_mut()
-            .zip(&rhs.0)
-            .for_each(|(ds, dr)| *ds += dr);
+    fn add_assign(&mut self, rhs: &Dual) {
+        check_same_ndiffs!(self, rhs);
+        self.0.iter_mut().zip(&rhs.0).for_each(|(ds, dr)| *ds += dr);
     }
 }
 
@@ -19,7 +29,8 @@ impl ops::Add<&Dual> for Dual {
 }
 
 impl ops::DivAssign<&Dual> for Dual {
-    fn div_assign(&mut self, rhs: &Dual)  {
+    fn div_assign(&mut self, rhs: &Dual) {
+        check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
         *self.val_mut() /= vr;
@@ -39,7 +50,8 @@ impl ops::Div<&Dual> for Dual {
 }
 
 impl ops::MulAssign<&Dual> for Dual {
-    fn mul_assign(&mut self, rhs: &Dual)  {
+    fn mul_assign(&mut self, rhs: &Dual) {
+        check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
         *self.val_mut() *= vr;
@@ -59,11 +71,9 @@ impl ops::Mul<&Dual> for Dual {
 }
 
 impl ops::SubAssign<&Dual> for Dual {
-    fn sub_assign(&mut self, rhs: &Dual)  {
-        self.0
-            .iter_mut()
-            .zip(&rhs.0)
-            .for_each(|(ds, dr)| *ds -= dr);
+    fn sub_assign(&mut self, rhs: &Dual) {
+        check_same_ndiffs!(self, rhs);
+        self.0.iter_mut().zip(&rhs.0).for_each(|(ds, dr)| *ds -= dr);
     }
 }
 
@@ -78,6 +88,21 @@ impl ops::Sub<&Dual> for Dual {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[should_panic]
+    #[allow(unused_must_use)]
+    fn test_diff_panic() {
+        let y = Dual::constant(42., 3);
+        let x = Dual::constant(42., 2);
+        x + &y;
+        let x = Dual::constant(42., 2);
+        x * &y;
+        let x = Dual::constant(42., 2);
+        x / &y;
+        let x = Dual::constant(42., 2);
+        x - &y;
+    }
 
     #[test]
     fn test_diff_add_mul() {
