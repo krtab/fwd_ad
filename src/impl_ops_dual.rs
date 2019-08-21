@@ -2,7 +2,7 @@ use crate::Dual;
 use std::ops;
 
 impl ops::AddAssign<&Dual> for Dual {
-    fn add_assign(&mut self, rhs: &Dual) -> () {
+    fn add_assign(&mut self, rhs: &Dual)  {
         *self.val_mut() += rhs.val();
         self.diffs_mut()
             .iter_mut()
@@ -20,7 +20,7 @@ impl ops::Add<&Dual> for Dual {
 }
 
 impl ops::DivAssign<&Dual> for Dual {
-    fn div_assign(&mut self, rhs: &Dual) -> () {
+    fn div_assign(&mut self, rhs: &Dual)  {
         let vs = self.val();
         let vr = rhs.val();
         *self.val_mut() /= vr;
@@ -40,7 +40,7 @@ impl ops::Div<&Dual> for Dual {
 }
 
 impl ops::MulAssign<&Dual> for Dual {
-    fn mul_assign(&mut self, rhs: &Dual) -> () {
+    fn mul_assign(&mut self, rhs: &Dual)  {
         let vs = self.val();
         let vr = rhs.val();
         *self.val_mut() *= vr;
@@ -60,7 +60,7 @@ impl ops::Mul<&Dual> for Dual {
 }
 
 impl ops::SubAssign<&Dual> for Dual {
-    fn sub_assign(&mut self, rhs: &Dual) -> () {
+    fn sub_assign(&mut self, rhs: &Dual)  {
         *self.val_mut() -= rhs.val();
         self.diffs_mut()
             .iter_mut()
