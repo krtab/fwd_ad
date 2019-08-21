@@ -6,8 +6,8 @@ use criterion::{Criterion, BatchSize};
 use smol_ad::Dual;
 
 fn bench(c: &mut Criterion) {
-    let mut x = Dual::constant(42., 2);
-    let mut y = Dual::constant(17., 2);
+    let mut x = Dual::constant(42., 15);
+    let mut y = Dual::constant(17., 15);
     x.diffs_mut()[0] = 1.;
     y.diffs_mut()[1] = 1.;
     c.bench_function("add",
@@ -18,8 +18,8 @@ fn bench(c: &mut Criterion) {
             BatchSize::SmallInput
         )
     });
-    let mut x = Dual::constant(42., 2);
-    let mut y = Dual::constant(17., 2);
+    let mut x = Dual::constant(42., 15);
+    let mut y = Dual::constant(17., 15);
     x.diffs_mut()[0] = 1.;
     y.diffs_mut()[1] = 1.;
     c.bench_function("mul",
