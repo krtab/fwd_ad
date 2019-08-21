@@ -2,7 +2,7 @@ use crate::Dual;
 use std::ops;
 
 impl ops::AddAssign<f64> for Dual {
-    fn add_assign(&mut self, rhs: f64)  {
+    fn add_assign(&mut self, rhs: f64) {
         *self.val_mut() += rhs;
     }
 }
@@ -16,7 +16,7 @@ impl ops::Add<f64> for Dual {
 }
 
 impl ops::DivAssign<f64> for Dual {
-    fn div_assign(&mut self, rhs: f64)  {
+    fn div_assign(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|ds| *ds /= rhs);
     }
 }
@@ -30,7 +30,7 @@ impl ops::Div<f64> for Dual {
 }
 
 impl ops::MulAssign<f64> for Dual {
-    fn mul_assign(&mut self, rhs: f64)  {
+    fn mul_assign(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|ds| *ds *= rhs);
     }
 }
@@ -44,7 +44,7 @@ impl ops::Mul<f64> for Dual {
 }
 
 impl ops::SubAssign<f64> for Dual {
-    fn sub_assign(&mut self, rhs: f64)  {
+    fn sub_assign(&mut self, rhs: f64) {
         *self.val_mut() -= rhs;
     }
 }
