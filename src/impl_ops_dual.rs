@@ -3,10 +3,9 @@ use std::ops;
 
 impl ops::AddAssign<&Dual> for Dual {
     fn add_assign(&mut self, rhs: &Dual)  {
-        *self.val_mut() += rhs.val();
-        self.diffs_mut()
+        self.0
             .iter_mut()
-            .zip(rhs.diffs())
+            .zip(&rhs.0)
             .for_each(|(ds, dr)| *ds += dr);
     }
 }
@@ -61,10 +60,9 @@ impl ops::Mul<&Dual> for Dual {
 
 impl ops::SubAssign<&Dual> for Dual {
     fn sub_assign(&mut self, rhs: &Dual)  {
-        *self.val_mut() -= rhs.val();
-        self.diffs_mut()
+        self.0
             .iter_mut()
-            .zip(rhs.diffs())
+            .zip(&rhs.0)
             .for_each(|(ds, dr)| *ds -= dr);
     }
 }
