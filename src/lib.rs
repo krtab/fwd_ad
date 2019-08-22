@@ -29,6 +29,13 @@ impl Dual {
     pub fn ndiffs(&self) -> usize {
         self.0.len() - 1
     }
+
+    pub fn is_close(&self, b: &Dual, atol: f64) -> bool {
+        self.0
+            .iter()
+            .zip(&b.0)
+            .all(|(xs, xb)| (*xs - *xb).abs() <= atol)
+    }
 }
 
 mod impl_ops_dual;

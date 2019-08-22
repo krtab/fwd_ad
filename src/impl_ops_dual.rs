@@ -94,9 +94,12 @@ impl Dual {
         self
     }
 
+    pub fn powf(mut self, exp: f64) -> Dual {
+        let vs = self.val();
+        *self.val_mut() = vs.powf(exp);
         self.diffs_mut()
             .iter_mut()
-            .for_each(|x| *x *= -1./svr);
+            .for_each(|ds| *ds *= exp * vs.powf(exp - 1.));
         self
     }
 }
@@ -104,6 +107,16 @@ impl Dual {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn generate_pair() -> (Dual, Dual) {
+        let mut y = Dual::constant(42., 3);
+        let mut x = Dual::constant(42., 3);
+        x.diffs_mut()[0] = 17.;
+        y.diffs_mut()[1] = -1.;
+        x.diffs_mut()[2] = -7.;
+        y.diffs_mut()[2] = 13.;
+        (x, y)
+    }
 
     #[test]
     #[should_panic]
@@ -142,13 +155,21 @@ mod tests {
 
     #[test]
     fn test_diff_div_inv() {
-        let mut x = Dual::constant(42., 2);
-        let mut y = Dual::constant(17., 2);
-        x.diffs_mut()[0] = 1.;
-        y.diffs_mut()[1] = 1.;
+        let (x, y) = generate_pair();
         let res1 = x.clone() / &y;
         let res2 = x * &y.inv();
-        assert_eq!(res1,res2);
+        assert!(res1.is_close(&res2, 1e-8));
+    }
+
+    #[test]
+    fn test_powf() {
+        let (x, y) = generate_pair();
+        let res1 = x.clone() * &x;
+        let res2 = x.powf(2.);
+        assert!(res1.is_close(&res2, 1e-8));
+        let res3 = y.clone().inv();
+        let res4 = y.powf(-1.);
+        assert!(res3.is_close(&res4, 1e-8));
     }
 
     #[test]
