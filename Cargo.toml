@@ -1,5 +1,5 @@
 [package]
-name = "smol_ad"
+name = "smolad"
 version = "0.1.0"
 authors = ["CARCANO Arthur <arthur.carcano@inria.fr>"]
 edition = "2018"

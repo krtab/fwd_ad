@@ -36,6 +36,18 @@ impl Dual {
             .zip(&b.0)
             .all(|(xs, xb)| (*xs - *xb).abs() <= atol)
     }
+
+    pub fn as_slice(&self) -> &[f64] {
+        self.0.as_slice()
+    }
+
+    pub fn from_slice(s : &[f64]) -> Dual {
+        Dual(s.to_vec())
+    }
+
+    pub fn to_vec(self) -> Vec<f64> {
+        self.0
+    }
 }
 
 mod impl_ops_dual;
