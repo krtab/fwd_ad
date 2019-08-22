@@ -102,6 +102,17 @@ impl Dual {
             .for_each(|ds| *ds *= exp * vs.powf(exp - 1.));
         self
     }
+
+    pub fn powdual(mut self, exp: &Dual) -> Dual {
+        let vs = self.val();
+        let ve = exp.val();
+        *self.val_mut() = vs.powf(ve);
+        self.diffs_mut()
+            .iter_mut()
+            .zip(exp.diffs())
+            .for_each(|(ds, de)| *ds = vs.powf(ve - 1.) * (vs * de * vs.ln() + ve * *ds));
+        self
+    }
 }
 
 #[cfg(test)]
@@ -179,5 +190,14 @@ mod tests {
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
         assert_eq!(x.clone() - &y, x + &(-y))
+    }
+
+    #[test]
+    fn test_powd() {
+        let x = Dual(vec![3., 1.]);
+        assert!(x
+            .clone()
+            .powdual(&x)
+            .is_close(&Dual(vec![27., 27. * (3_f64.ln() + 1.)]), 1e-8))
     }
 }
