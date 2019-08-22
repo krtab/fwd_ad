@@ -87,9 +87,13 @@ impl ops::Sub<&Dual> for Dual {
 
 impl Dual {
     pub fn inv(mut self) -> Dual {
-        let vr = self.val();
-        let svr = vr*vr;
-        self.0[0] = 1./vr;
+        let vs = self.val();
+        let svs = vs * vs;
+        *self.val_mut() = 1. / vs;
+        self.diffs_mut().iter_mut().for_each(|ds| *ds *= -1. / svs);
+        self
+    }
+
         self.diffs_mut()
             .iter_mut()
             .for_each(|x| *x *= -1./svr);
