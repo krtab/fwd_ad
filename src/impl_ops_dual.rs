@@ -85,6 +85,18 @@ impl ops::Sub<&Dual> for Dual {
     }
 }
 
+impl Dual {
+    pub fn inv(mut self) -> Dual {
+        let vr = self.val();
+        let svr = vr*vr;
+        self.0[0] = 1./vr;
+        self.diffs_mut()
+            .iter_mut()
+            .for_each(|x| *x *= -1./svr);
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,6 +134,17 @@ mod tests {
         y.diffs_mut()[1] = 1.;
         let res = x / &y;
         assert_eq!(res, Dual(vec![42. / 17., 1. / 17., -42. / (17. * 17.)]));
+    }
+
+    #[test]
+    fn test_diff_div_inv() {
+        let mut x = Dual::constant(42., 2);
+        let mut y = Dual::constant(17., 2);
+        x.diffs_mut()[0] = 1.;
+        y.diffs_mut()[1] = 1.;
+        let res1 = x.clone() / &y;
+        let res2 = x * &y.inv();
+        assert_eq!(res1,res2);
     }
 
     #[test]
