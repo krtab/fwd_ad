@@ -2,6 +2,7 @@
 extern crate criterion;
 
 use criterion::{BatchSize, Criterion};
+use std::time::Duration;
 
 use smol_ad::Dual;
 
@@ -30,5 +31,8 @@ fn bench(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench);
+criterion_group! {
+name = benches;
+config = Criterion::default().measurement_time(Duration::from_secs(10)).warm_up_time(Duration::from_secs(5)).sample_size(200).noise_threshold(0.05);
+targets = bench}
 criterion_main!(benches);
