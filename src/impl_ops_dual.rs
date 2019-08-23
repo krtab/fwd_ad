@@ -105,6 +105,10 @@ impl Dual {
 
     pub fn powdual(mut self, exp: &Dual) -> Dual {
         let vs = self.val();
+        if vs == 0. {
+            for ds in self.diffs_mut() {*ds = 0.};
+            return self;
+        }
         let ve = exp.val();
         *self.val_mut() = vs.powf(ve);
         self.diffs_mut()
