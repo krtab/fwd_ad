@@ -41,7 +41,7 @@ impl Dual {
         self.0.as_slice()
     }
 
-    pub fn from_slice(s : &[f64]) -> Dual {
+    pub fn from_slice(s: &[f64]) -> Dual {
         Dual(s.to_vec())
     }
 
