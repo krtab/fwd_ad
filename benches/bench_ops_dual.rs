@@ -13,8 +13,8 @@ fn bench(c: &mut Criterion) {
     y.diffs_mut()[1] = 1.;
     c.bench_function("add", move |b| {
         b.iter_batched(
-            || (x.clone(), y.clone()),
-            move |(x2, y2)| x2 + &y2,
+            || (x.clone(), y.view()),
+            move |(x2, y2)| x2 + y2,
             BatchSize::SmallInput,
         )
     });
@@ -24,8 +24,8 @@ fn bench(c: &mut Criterion) {
     y.diffs_mut()[1] = 1.;
     c.bench_function("mul", move |b| {
         b.iter_batched(
-            || (x.clone(), y.clone()),
-            move |(x2, y2)| x2 * &y2,
+            || (x.clone(), y.view()),
+            move |(x2, y2)| x2 * y2,
             BatchSize::SmallInput,
         )
     });

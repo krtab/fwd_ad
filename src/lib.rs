@@ -1,48 +1,14 @@
+use std::borrow::*;
 use std::ops;
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct Dual(Vec<f64>);
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct Dual<T>(T);
 
-impl Dual {
-    pub fn constant(v: f64, ndiffs: usize) -> Dual {
+impl Dual<Vec<f64>> {
+    pub fn constant(v: f64, ndiffs: usize) -> Dual<Vec<f64>> {
         let mut res = Dual(vec![0.; ndiffs + 1]);
         res.0[0] = v;
         res
-    }
-
-    pub fn val(&self) -> f64 {
-        self.0[0]
-    }
-
-    pub fn val_mut(&mut self) -> &mut f64 {
-        &mut self.0[0]
-    }
-
-    pub fn diffs(&self) -> &[f64] {
-        &self.0[1..]
-    }
-
-    pub fn diffs_mut(&mut self) -> &mut [f64] {
-        &mut self.0[1..]
-    }
-
-    pub fn ndiffs(&self) -> usize {
-        self.0.len() - 1
-    }
-
-    pub fn is_close(&self, b: &Dual, atol: f64) -> bool {
-        self.0
-            .iter()
-            .zip(&b.0)
-            .all(|(xs, xb)| (*xs - *xb).abs() <= atol)
-    }
-
-    pub fn as_slice(&self) -> &[f64] {
-        self.0.as_slice()
-    }
-
-    pub fn from_slice(s: &[f64]) -> Dual {
-        Dual(s.to_vec())
     }
 
     pub fn to_vec(self) -> Vec<f64> {
@@ -50,13 +16,68 @@ impl Dual {
     }
 }
 
-mod impl_ops_dual;
-mod impl_ops_scalar_rhs;
+impl<T> Dual<T>
+where
+    T: Borrow<[f64]>,
+{
+    pub fn as_slice(&self) -> &[f64] {
+        self.0.borrow()
+    }
 
-impl ops::Neg for Dual {
-    type Output = Dual;
-    fn neg(mut self) -> Dual {
-        for x in &mut self.0 {
+    pub fn val(&self) -> f64 {
+        self.as_slice()[0]
+    }
+
+    pub fn diffs(&self) -> &[f64] {
+        &self.as_slice()[1..]
+    }
+
+    pub fn ndiffs(&self) -> usize {
+        self.as_slice().len() - 1
+    }
+
+    pub fn is_close<S>(&self, b: &Dual<S>, atol: f64) -> bool
+    where
+        S: Borrow<[f64]>,
+    {
+        self.as_slice()
+            .iter()
+            .zip(b.as_slice())
+            .all(|(xs, xb)| (*xs - *xb).abs() <= atol)
+    }
+
+    pub fn view(&self) -> Dual<&[f64]> {
+        Dual(self.as_slice())
+    }
+}
+
+impl<T> Dual<T>
+where
+    T: BorrowMut<[f64]>,
+{
+    pub fn as_slice_mut(&mut self) -> &mut [f64] {
+        self.0.borrow_mut()
+    }
+
+    pub fn val_mut(&mut self) -> &mut f64 {
+        unsafe { self.as_slice_mut().get_unchecked_mut(0) }
+    }
+
+    pub fn diffs_mut(&mut self) -> &mut [f64] {
+        &mut self.as_slice_mut()[1..]
+    }
+}
+
+mod impl_ops_dual;
+// mod impl_ops_scalar_rhs;
+
+impl<T> ops::Neg for Dual<T>
+where
+    T: BorrowMut<[f64]>,
+{
+    type Output = Dual<T>;
+    fn neg(mut self) -> Dual<T> {
+        for x in self.as_slice_mut() {
             *x = ops::Neg::neg(*x);
         }
         self
@@ -70,9 +91,7 @@ mod tests {
     #[test]
     fn test_constant() {
         let x = Dual::constant(42., 2);
-        let y = Dual::constant(17., 2);
-        let res = (x + &y) * &y;
-        assert_eq!(res, Dual(vec![(42. + 17.) * 17., 0., 0.]));
+        assert_eq!(x, Dual(vec![42., 0., 0.]));
     }
 
     #[test]
