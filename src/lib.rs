@@ -16,10 +16,12 @@ impl Dual<Vec<f64>> {
     }
 }
 
-impl Dual<&[f64]>
+impl<S> Dual<S>
+where
+    S : Borrow<[f64]>
     {
         pub fn to_owning(&self) -> Dual<Vec<f64>> {
-            Dual(self.0.to_owned())
+            Dual(self.as_slice().to_owned())
         }
 
         pub fn to_owning_default<T>(&self) -> Dual<T>
