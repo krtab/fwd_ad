@@ -2,7 +2,7 @@ use std::borrow::*;
 use std::ops;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Dual<T>(T);
+pub struct Dual<T>(pub T);
 
 impl Dual<Vec<f64>> {
     pub fn constant(v: f64, ndiffs: usize) -> Dual<Vec<f64>> {
@@ -15,6 +15,24 @@ impl Dual<Vec<f64>> {
         self.0
     }
 }
+
+impl Dual<&[f64]>
+    {
+        pub fn to_owning(&self) -> Dual<Vec<f64>> {
+            Dual(self.0.to_owned())
+        }
+
+        pub fn to_owning_default<T>(&self) -> Dual<T>
+        where
+            T : std::default::Default,
+            T : BorrowMut<[f64]>
+        {
+            let mut res = Dual(std::default::Default::default());
+            res.as_slice_mut().copy_from_slice(&self.as_slice());
+            res
+
+        }
+    }
 
 impl<T> Dual<T>
 where
