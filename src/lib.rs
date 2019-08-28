@@ -89,7 +89,7 @@ where
 }
 
 mod impl_ops_dual;
-// mod impl_ops_scalar_rhs;
+mod impl_ops_scalar_rhs;
 
 impl<T> ops::Neg for Dual<T>
 where
