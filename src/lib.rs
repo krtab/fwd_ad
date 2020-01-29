@@ -104,9 +104,39 @@ where
     }
 }
 
+impl<S> Dual<S>
+where
+    S: BorrowMut<[f64]>
+{
+    pub fn exp(mut self) -> Dual<S> {
+        let expval = self.val().exp();
+        *self.val_mut() = expval;
+        for x in self.diffs_mut() {
+            *x *= expval;
+        }
+        self
+    }
+
+    pub fn ln(mut self) -> Dual<S> {
+        let val = self.val();
+        *self.val_mut() = val.ln();
+        for x in self.diffs_mut() {
+            *x /= val;
+        }
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn generate() -> Dual<Vec<f64>> {
+        let mut x = Dual::constant(42., 3);
+        x.diffs_mut()[0] = 17.;
+        x.diffs_mut()[2] = -7.;
+        x
+    }
 
     #[test]
     fn test_constant() {
@@ -118,5 +148,18 @@ mod tests {
     fn test_size() {
         let x = Dual::constant(0., 42);
         assert_eq!(x.ndiffs(), 42);
+    }
+
+    #[test]
+    fn test_neg() {
+        let x = generate();
+        assert_eq!(-(-x.clone()),x);
+    }
+
+    #[test]
+    fn test_ln_exp() {
+        let x = generate();
+        assert!(x.clone().is_close(&x.clone().exp().ln() , 1e-8));
+        assert!(x.clone().is_close(&x.clone().ln().exp() , 1e-8));
     }
 }
