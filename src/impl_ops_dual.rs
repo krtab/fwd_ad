@@ -14,9 +14,9 @@ macro_rules! check_same_ndiffs {
     };
 }
 
-impl<S, R> ops::AddAssign<Dual<R>> for Dual<S>
+impl<L, R> ops::AddAssign<Dual<R>> for Dual<L>
 where
-    S: BorrowMut<[f64]>,
+    L: BorrowMut<[f64]>,
     R: Borrow<[f64]>,
 {
     fn add_assign(&mut self, rhs: Dual<R>) {
@@ -28,13 +28,13 @@ where
     }
 }
 
-impl<S, R> ops::Add<Dual<R>> for Dual<S>
+impl<L, R> ops::Add<Dual<R>> for Dual<L>
 where
-    S: BorrowMut<[f64]>,
+    L: BorrowMut<[f64]>,
     R: Borrow<[f64]>,
 {
-    type Output = Dual<S>;
-    fn add(mut self, rhs: Dual<R>) -> Dual<S> {
+    type Output = Self;
+    fn add(mut self, rhs: Dual<R>) -> Self {
         self += rhs;
         self
     }
@@ -120,48 +120,6 @@ where
     type Output = Dual<S>;
     fn sub(mut self, rhs: Dual<R>) -> Dual<S> {
         self -= rhs;
-        self
-    }
-}
-
-impl<S> Dual<S>
-where
-    S: BorrowMut<[f64]>,
-{
-    pub fn inv(mut self) -> Dual<S> {
-        let vs = self.val();
-        let svs = vs * vs;
-        *self.val_mut() = 1. / vs;
-        self.diffs_mut().iter_mut().for_each(|ds| *ds *= -1. / svs);
-        self
-    }
-
-    pub fn powf(mut self, exp: f64) -> Dual<S> {
-        let vs = self.val();
-        *self.val_mut() = vs.powf(exp);
-        self.diffs_mut()
-            .iter_mut()
-            .for_each(|ds| *ds *= exp * vs.powf(exp - 1.));
-        self
-    }
-
-    pub fn powdual<R>(mut self, exp: Dual<R>) -> Dual<S>
-    where
-        R: Borrow<[f64]>,
-    {
-        let vs = self.val();
-        if vs == 0. {
-            for ds in self.diffs_mut() {
-                *ds = 0.
-            }
-            return self;
-        }
-        let ve = exp.val();
-        *self.val_mut() = vs.powf(ve);
-        self.diffs_mut()
-            .iter_mut()
-            .zip(exp.diffs())
-            .for_each(|(ds, de)| *ds = vs.powf(ve - 1.) * (vs * de * vs.ln() + ve * *ds));
         self
     }
 }
