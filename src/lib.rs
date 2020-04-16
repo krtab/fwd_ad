@@ -34,17 +34,17 @@ impl<T> Dual<T>
 where
     T: Borrow<[f64]>,
 {
-    /// Clone the borrowed content, so that the resulting Dual
-    /// owns its content.
-    pub fn to_owning(&self) -> Dual<Vec<f64>> {
-        Dual(self.as_slice().to_owned())
-    }
 
     /// Returns the content as a slice.
     pub fn as_slice(&self) -> &[f64] {
         self.0.borrow()
     }
 
+    /// Clone the borrowed content, so that the resulting Dual
+    /// owns its content.
+    pub fn to_owning(&self) -> Dual<Vec<f64>> {
+        Dual(self.as_slice().to_owned())
+    }
     /// Returns the value of the dual.
     pub fn val(&self) -> f64 {
         self.as_slice()[0]
@@ -154,6 +154,13 @@ where
             .iter_mut()
             .zip(exp.diffs())
             .for_each(|(ds, de)| *ds = vs.powf(ve - 1.) * (vs * de * vs.ln() + ve * *ds));
+        self
+    }
+
+    pub fn abs(mut self) -> Dual<T> {
+        if self.val() < 0. {
+            self *= -1.;
+        };
         self
     }
 }
