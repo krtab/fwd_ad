@@ -1,8 +1,8 @@
-use crate::Dual;
+use crate::{Dual, RW};
 use std::borrow::*;
 use std::ops;
 
-impl<S> ops::AddAssign<f64> for Dual<S>
+impl<S> ops::AddAssign<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
@@ -11,18 +11,18 @@ where
     }
 }
 
-impl<S> ops::Add<f64> for Dual<S>
+impl<S> ops::Add<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn add(mut self, rhs: f64) -> Dual<S> {
+    type Output = Self;
+    fn add(mut self, rhs: f64) -> Self {
         self += rhs;
         self
     }
 }
 
-impl<S> ops::DivAssign<f64> for Dual<S>
+impl<S> ops::DivAssign<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
@@ -31,18 +31,18 @@ where
     }
 }
 
-impl<S> ops::Div<f64> for Dual<S>
+impl<S> ops::Div<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn div(mut self, rhs: f64) -> Dual<S> {
+    type Output = Self;
+    fn div(mut self, rhs: f64) -> Self {
         self /= rhs;
         self
     }
 }
 
-impl<S> ops::MulAssign<f64> for Dual<S>
+impl<S> ops::MulAssign<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
@@ -51,18 +51,18 @@ where
     }
 }
 
-impl<S> ops::Mul<f64> for Dual<S>
+impl<S> ops::Mul<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn mul(mut self, rhs: f64) -> Dual<S> {
+    type Output = Self;
+    fn mul(mut self, rhs: f64) -> Self {
         self *= rhs;
         self
     }
 }
 
-impl<S> ops::SubAssign<f64> for Dual<S>
+impl<S> ops::SubAssign<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
@@ -71,12 +71,12 @@ where
     }
 }
 
-impl<S> ops::Sub<f64> for Dual<S>
+impl<S> ops::Sub<f64> for Dual<S, RW>
 where
     S: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn sub(mut self, rhs: f64) -> Dual<S> {
+    type Output = Self;
+    fn sub(mut self, rhs: f64) -> Self {
         self -= rhs;
         self
     }

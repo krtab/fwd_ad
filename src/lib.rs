@@ -1,21 +1,51 @@
 //! A crate implementing forward auto-differentiation, via dual numbers.
 
+use std::marker::PhantomData;
 use std::borrow::*;
 use std::ops;
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct RO;
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct RW;
+
+// TODO Seal trait
+pub trait CompatibleWith<OM> : Borrow<[f64]> {}
+impl<T : Borrow<[f64]>> CompatibleWith<RO> for T {}
+impl<T : BorrowMut<[f64]>> CompatibleWith<RW> for T {}
+
 
 /// The struct implementing dual numbers.
 ///
 /// It is parametrized by a type <T> which stands for either a borrowed or an owned container,
 /// and derefences to `[f64]`.
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Dual<T: Borrow<[f64]>>(pub T);
+pub struct Dual<T, M>
+where
+    T : CompatibleWith<M>
+{
+    content : T,
+    ph_om : PhantomData<M>,
+}
 
-impl Dual<Vec<f64>> {
+impl<T,M> From<T> for Dual<T, M>
+where
+    T : CompatibleWith<M>
+{
+    fn from(x : T) -> Self {
+        Dual{
+            content: x,
+            ph_om: PhantomData
+        }
+    }
+}
+
+impl Dual<Vec<f64>, RW> {
     /// Generates a dual number backed by a Vec<f64> with value `value` and `ndiffs`
     /// differentials, set to 0.
-    pub fn constant(value: f64, ndiffs: usize) -> Dual<Vec<f64>> {
-        let mut res = Dual(vec![0.; ndiffs + 1]);
-        res.0[0] = value;
+    pub fn constant(value: f64, ndiffs: usize) -> Self {
+        let mut res = Dual::from(vec![0.; ndiffs + 1]);
+        res.content[0] = value;
         res
     }
 }
@@ -30,21 +60,23 @@ impl Dual<Vec<f64>> {
 // }
 
 /// Implementations for Duals that do not necessarily own their content.
-impl<T> Dual<T>
+impl<T, M> Dual<T, M>
 where
-    T: Borrow<[f64]>,
+    T: CompatibleWith<M>,
 {
 
     /// Returns the content as a slice.
     pub fn as_slice(&self) -> &[f64] {
-        self.0.borrow()
+        self.content.borrow()
     }
 
+    // TODO Implement as borrow::ToOwned
     /// Clone the borrowed content, so that the resulting Dual
     /// owns its content.
-    pub fn to_owning(&self) -> Dual<Vec<f64>> {
-        Dual(self.as_slice().to_owned())
+    pub fn to_owning(&self) -> Dual<Vec<f64>, RW> {
+        Dual::from(self.as_slice().to_owned())
     }
+
     /// Returns the value of the dual.
     pub fn val(&self) -> f64 {
         self.as_slice()[0]
@@ -61,9 +93,9 @@ where
     }
 
     /// Allows comparing to duals by checking whether they are elementwise within `atol` of each other.
-    pub fn is_close<S>(&self, b: &Dual<S>, atol: f64) -> bool
+    pub fn is_close<S, M2>(&self, b: &Dual<S, M2>, atol: f64) -> bool
     where
-        S: Borrow<[f64]>,
+        S: CompatibleWith<M2>
     {
         self.as_slice()
             .iter()
@@ -72,19 +104,20 @@ where
     }
 
     /// Returns a non-owning Dual backed by the same container as self.
-    pub fn view(&self) -> Dual<&[f64]> {
-        Dual(self.as_slice())
+    pub fn view(&self) -> Dual<&[f64],RO> {
+        Dual::from(self.as_slice())
     }
 }
 
 /// Methods for Duals that own their content
-impl<T> Dual<T>
+impl<T> Dual<T, RW>
 where
-    T: BorrowMut<[f64]>,
+    T : BorrowMut<[f64]>,
+    T : CompatibleWith<RW> //Implied by BorrowMut<[f64]>
 {
     /// Returns a mutable slice
     pub fn as_slice_mut(&mut self) -> &mut [f64] {
-        self.0.borrow_mut()
+        self.content.borrow_mut()
     }
 
     /// Return a mutable reference to the value
@@ -98,7 +131,7 @@ where
     }
 
     /// Returns the e^self.
-    pub fn exp(mut self) -> Dual<T> {
+    pub fn exp(mut self) -> Self {
         let expval = self.val().exp();
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
@@ -108,7 +141,7 @@ where
     }
 
     /// Returns ln(self).
-    pub fn ln(mut self) -> Dual<T> {
+    pub fn ln(mut self) -> Self {
         let val = self.val();
         *self.val_mut() = val.ln();
         for x in self.diffs_mut() {
@@ -118,7 +151,7 @@ where
     }
 
     /// Returns 1/self.
-    pub fn inv(mut self) -> Dual<T> {
+    pub fn inv(mut self) -> Self {
         let vs = self.val();
         let svs = vs * vs;
         *self.val_mut() = 1. / vs;
@@ -127,7 +160,7 @@ where
     }
 
     /// Returns self^exp.
-    pub fn powf(mut self, exp: f64) -> Dual<T> {
+    pub fn powf(mut self, exp: f64) -> Self {
         let vs = self.val();
         *self.val_mut() = vs.powf(exp);
         self.diffs_mut()
@@ -137,9 +170,9 @@ where
     }
 
     /// Returns self^exp.
-    pub fn powdual<S>(mut self, exp: Dual<S>) -> Dual<T>
+    pub fn powdual<S, M2>(mut self, exp: Dual<S, M2>) -> Self
     where
-        S: Borrow<[f64]>,
+        S: CompatibleWith<M2>,
     {
         let vs = self.val();
         if vs == 0. {
@@ -157,7 +190,7 @@ where
         self
     }
 
-    pub fn abs(mut self) -> Dual<T> {
+    pub fn abs(mut self) -> Self {
         if self.val() < 0. {
             self *= -1.;
         };
@@ -168,12 +201,12 @@ where
 mod impl_ops_dual;
 mod impl_ops_scalar_rhs;
 
-impl<T> ops::Neg for Dual<T>
+impl<T> ops::Neg for Dual<T, RW>
 where
-    T: BorrowMut<[f64]>,
+    T: BorrowMut<[f64]>, //Implies Compatibility with RW
 {
-    type Output = Dual<T>;
-    fn neg(mut self) -> Dual<T> {
+    type Output = Self;
+    fn neg(mut self) -> Self {
         for x in self.as_slice_mut() {
             *x = ops::Neg::neg(*x);
         }
@@ -185,7 +218,7 @@ where
 mod tests {
     use super::*;
 
-    fn generate() -> Dual<Vec<f64>> {
+    fn generate() -> Dual<Vec<f64>, RW> {
         let mut x = Dual::constant(42., 3);
         x.diffs_mut()[0] = 17.;
         x.diffs_mut()[2] = -7.;
@@ -195,7 +228,7 @@ mod tests {
     #[test]
     fn test_constant() {
         let x = Dual::constant(42., 2);
-        assert_eq!(x, Dual(vec![42., 0., 0.]));
+        assert_eq!(x, Dual::from(vec![42., 0., 0.]));
     }
 
     #[test]
