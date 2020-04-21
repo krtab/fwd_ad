@@ -58,6 +58,62 @@ macro_rules! derive_ops {
                 self
             }
         }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R> ops::$opsname<Dual<R, RO>> for Dual<L, RO>
+        where
+            L : CompatibleWith<RO>,
+            R : CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: Dual<R,RO>) -> Dual<Vec<f64>,RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, &rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, MR> ops::$opsname<&Dual<R, MR>> for Dual<L, RO>
+        where
+            L : CompatibleWith<RO>,
+            R : CompatibleWith<MR>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: &Dual<R,MR>) -> Dual<Vec<f64>,RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, ML> ops::$opsname<Dual<R, RO>> for &Dual<L, ML>
+        where
+            L : CompatibleWith<ML>,
+            R : CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: Dual<R,RO>) -> Dual<Vec<f64>,RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, &rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, MR, ML> ops::$opsname<&Dual<R, MR>> for &Dual<L, ML>
+        where
+            L : CompatibleWith<ML>,
+            R : CompatibleWith<MR>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: &Dual<R,MR>) -> Dual<Vec<f64>,RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
+            }
+        }
     }
 }
 
@@ -134,6 +190,25 @@ where
             .iter_mut()
             .zip(rhs.diffs())
             .for_each(|(ds, dr)| *ds = (*ds - dr * vs / vr) / vr);
+    }
+}
+
+impl<L, R> ops::Div<Dual<R, RW>> for Dual<L, RO>
+where
+    L: CompatibleWith<RO>,
+    R: BorrowMut<[f64]>,
+{
+    type Output = Dual<R,RW>;
+    fn div(self, mut rhs: Dual<R, RW>) -> Dual<R,RW>{
+        check_same_ndiffs!(self, rhs);
+        let vs = self.val();
+        let vr = rhs.val();
+        *rhs.val_mut() = vs / vr;
+        self.diffs()
+            .iter()
+            .zip(rhs.diffs_mut())
+            .for_each(|(ds, dr)| *dr = (*ds - *dr * vs / vr) / vr);
+        rhs
     }
 }
 

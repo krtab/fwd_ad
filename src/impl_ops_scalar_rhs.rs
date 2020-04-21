@@ -1,4 +1,4 @@
-use crate::{Dual, RW};
+use crate::{Dual, RW, RO, CompatibleWith};
 use std::borrow::*;
 use std::ops;
 
@@ -25,6 +25,19 @@ macro_rules! derive_ops {
                 self
             }
         }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L> ops::$opsname<f64> for Dual<L, RO>
+        where
+            L : CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: f64) -> Dual<Vec<f64>,RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
+            }
+        }
     }
 }
 
@@ -41,6 +54,19 @@ macro_rules! derive_ops_commut {
             fn $fn_name(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
                 ops::$opsassignname::$fnassign_name(&mut rhs, self);
                 rhs
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<R> ops::$opsname<Dual<R,RO>> for f64
+        where
+            R : CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: Dual<R,RO>) -> Dual<Vec<f64>,RW> {
+                let mut res = rhs.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
             }
         }
     }
