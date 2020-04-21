@@ -130,12 +130,32 @@ where
         &mut self.as_slice_mut()[1..]
     }
 
-    /// Returns the e^self.
+    /// Returns e^self.
     pub fn exp(mut self) -> Self {
         let expval = self.val().exp();
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
             *x *= expval;
+        }
+        self
+    }
+
+    /// Returns 2^self.
+    pub fn exp2(mut self) -> Self {
+        let expval = self.val().exp2();
+        *self.val_mut() = expval;
+        for x in self.diffs_mut() {
+            *x *= 2_f64.ln()*expval;
+        }
+        self
+    }
+
+    /// Returns base^self.
+    pub fn exp_base(mut self, base : f64) -> Self {
+        let expval = base.powf(self.val());
+        *self.val_mut() = expval;
+        for x in self.diffs_mut() {
+            *x *= base.ln()*expval;
         }
         self
     }
