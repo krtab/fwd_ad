@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_powd() {
-        let x = Dual::from(vec![3., 1.]);
+        let x : Dual<_,RW> = Dual::from(vec![3., 1.]);
         assert!(x
             .clone()
             .powdual(x)

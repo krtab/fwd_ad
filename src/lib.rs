@@ -218,6 +218,56 @@ where
     }
 }
 
+
+// The feature gate is applied to a module because it is easier than applying it to each sub-item
+#[cfg(feature = "implicit-clone")]
+mod implicit_clone {
+    use super::*;
+
+    macro_rules! clone_impl {
+        {$fname: ident($($param : ident : $ptype : ty),*)} => {
+            pub fn $fname(&self,$($param : $ptype),*) -> Dual<Vec<f64>, RW> {
+                    let res = self.to_owning();
+                    res.$fname($($param),*)
+            }
+        }
+    }
+
+    impl<T> Dual<T, RO>
+        where
+            T : CompatibleWith<RO>
+        {
+
+            clone_impl!(exp());
+            clone_impl!(exp2());
+            clone_impl!(exp_base(base : f64));
+            clone_impl!(ln());
+            clone_impl!(inv());
+            clone_impl!(powf(exp : f64));
+            clone_impl!(abs());
+
+            pub fn powdual<S, M2>(self, exp: Dual<S, M2>) -> Dual<Vec<f64>,RW>
+            where
+                S: CompatibleWith<M2>,
+            {
+                let res = self.to_owning();
+                res.powdual(exp)
+            }
+        }
+
+        impl<T> ops::Neg for Dual<T, RO>
+        where
+            T: CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>,RW>;
+            fn neg(self) -> Dual<Vec<f64>,RW> {
+                let res = self.to_owning();
+                -res
+            }
+        }
+
+}
+
 mod impl_ops_dual;
 mod impl_ops_scalar_rhs;
 
