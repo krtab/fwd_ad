@@ -2,6 +2,14 @@ use crate::{Dual, RO, RW, CompatibleWith};
 use std::borrow::*;
 use std::ops;
 
+
+//
+//
+// Macros
+// ======
+//
+//
+
 macro_rules! check_same_ndiffs {
     ($x : ident , $y : ident) => {
         assert_eq!(
@@ -14,12 +22,92 @@ macro_rules! check_same_ndiffs {
     };
 }
 
-impl<L, R, M> ops::AddAssign<Dual<R, M>> for Dual<L, RW>
+// Derive multiple implementations of the ops from the XAssign<&Dual<_,_>> for Dual<_,RW> one
+macro_rules! derive_ops {
+    ($opsname : ident, $opsassignname : ident, $fn_name:ident, $fnassign_name : ident) => {
+
+        impl<L, R, M> ops::$opsassignname<Dual<R, M>> for Dual<L, RW> 
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            fn $fnassign_name(&mut self, rhs: Dual<R, M>) {
+                ops::$opsassignname::$fnassign_name(self,&rhs)
+            }
+        }
+
+        impl<L, R, M> ops::$opsname<Dual<R, M>> for Dual<L, RW>
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            type Output = Self;
+            fn $fn_name(mut self, rhs: Dual<R, M>) -> Self {
+                ops::$opsassignname::$fnassign_name(&mut self, &rhs);
+                self
+            }
+        }
+        impl<L, R, M> ops::$opsname<&Dual<R, M>> for Dual<L, RW>
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            type Output = Self;
+            fn $fn_name(mut self, rhs: &Dual<R, M>) -> Self {
+                ops::$opsassignname::$fnassign_name(&mut self, rhs);
+                self
+            }
+        }
+    }
+}
+
+macro_rules! derive_ops_commut {
+    ($opsname : ident, $opsassignname : ident, $fn_name:ident, $fnassign_name : ident) => {
+
+        derive_ops!($opsname, $opsassignname, $fn_name, $fnassign_name);
+
+        impl<L, R> ops::$opsname<Dual<R, RW>> for Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: BorrowMut<[f64]>,
+        {
+            type Output = Dual<R, RW>;
+            fn $fn_name(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+                ops::$opsassignname::$fnassign_name(&mut rhs, &self);
+                rhs
+            }
+        }
+
+        impl<L, R> ops::$opsname<Dual<R, RW>> for &Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: BorrowMut<[f64]>,
+        {
+            type Output = Dual<R, RW>;
+            fn $fn_name(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+                ops::$opsassignname::$fnassign_name(&mut rhs, self);
+                rhs
+            }
+        }
+
+
+    }
+}
+
+
+//
+//
+// Ops Implementations
+// ===================
+//
+//
+
+impl<L, R, M> ops::AddAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
-    fn add_assign(&mut self, rhs: Dual<R, M>) {
+    fn add_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         self.as_slice_mut()
             .iter_mut()
@@ -28,36 +116,16 @@ where
     }
 }
 
-impl<L, R, M> ops::Add<Dual<R, M>> for Dual<L, RW>
+derive_ops_commut!(Add, AddAssign, add, add_assign);
+
+
+
+impl<L, R, M> ops::DivAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
-    type Output = Self;
-    fn add(mut self, rhs: Dual<R, M>) -> Self {
-        self += rhs;
-        self
-    }
-}
-
-impl<L, R> ops::Add<Dual<R, RW>> for Dual<L, RO>
-where
-    L: CompatibleWith<RO>,
-    R: BorrowMut<[f64]>,
-{
-    type Output = Dual<R, RW>;
-    fn add(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
-        rhs += self;
-        rhs
-    }
-}
-
-impl<L, R, M> ops::DivAssign<Dual<R, M>> for Dual<L, RW>
-where
-    L: BorrowMut<[f64]>,
-    R: CompatibleWith<M>,
-{
-    fn div_assign(&mut self, rhs: Dual<R, M>) {
+    fn div_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
@@ -69,24 +137,14 @@ where
     }
 }
 
-impl<L, R, M> ops::Div<Dual<R, M>> for Dual<L, RW>
-where
-    L: BorrowMut<[f64]>,
-    R: CompatibleWith<M>,
-{
-    type Output = Self;
-    fn div(mut self, rhs: Dual<R, M>) -> Self {
-        self /= rhs;
-        self
-    }
-}
+derive_ops!(Div, DivAssign, div, div_assign);
 
-impl<L, R, M> ops::MulAssign<Dual<R, M>> for Dual<L, RW>
+impl<L, R, M> ops::MulAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
-    fn mul_assign(&mut self, rhs: Dual<R, M>) {
+    fn mul_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
@@ -98,36 +156,14 @@ where
     }
 }
 
-impl<L, R, M> ops::Mul<Dual<R, M>> for Dual<L, RW>
+derive_ops_commut!(Mul, MulAssign, mul, mul_assign);
+
+impl<L, R, M> ops::SubAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
-    type Output = Self;
-    fn mul(mut self, rhs: Dual<R, M>) -> Self {
-        self *= rhs;
-        self
-    }
-}
-
-impl<L, R> ops::Mul<Dual<R, RW>> for Dual<L, RO>
-where
-    L: CompatibleWith<RO>,
-    R: BorrowMut<[f64]>,
-{
-    type Output = Dual<R, RW>;
-    fn mul(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
-        rhs *= self;
-        rhs
-    }
-}
-
-impl<L, R, M> ops::SubAssign<Dual<R, M>> for Dual<L, RW>
-where
-    L: BorrowMut<[f64]>,
-    R: CompatibleWith<M>,
-{
-    fn sub_assign(&mut self, rhs: Dual<R, M>) {
+    fn sub_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         self.as_slice_mut()
             .iter_mut()
@@ -136,17 +172,7 @@ where
     }
 }
 
-impl<L, R, M> ops::Sub<Dual<R, M>> for Dual<L, RW>
-where
-    L: BorrowMut<[f64]>,
-    R: CompatibleWith<M>,
-{
-    type Output = Self;
-    fn sub(mut self, rhs: Dual<R, M>) -> Self {
-        self -= rhs;
-        self
-    }
-}
+derive_ops!(Sub, SubAssign, sub, sub_assign);
 
 
 #[cfg(test)]
@@ -185,7 +211,7 @@ mod tests {
         let mut y = Dual::constant(17., 2);
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
-        let res = (x + y.view()) * y;
+        let res = (x + &y) * y;
         assert_eq!(res, Dual::from(vec![(42. + 17.) * 17., 17., 2. * 17. + 42.]));
     }
 
