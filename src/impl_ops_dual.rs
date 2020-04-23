@@ -199,6 +199,17 @@ where
     R: BorrowMut<[f64]>,
 {
     type Output = Dual<R,RW>;
+    fn div(self, rhs: Dual<R, RW>) -> Dual<R,RW>{
+        &self/rhs
+    }
+}
+
+impl<L, R, ML> ops::Div<Dual<R, RW>> for &Dual<L, ML>
+where
+    L: CompatibleWith<ML>,
+    R: BorrowMut<[f64]>,
+{
+    type Output = Dual<R,RW>;
     fn div(self, mut rhs: Dual<R, RW>) -> Dual<R,RW>{
         check_same_ndiffs!(self, rhs);
         let vs = self.val();
@@ -244,6 +255,33 @@ where
             .iter_mut()
             .zip(rhs.as_slice())
             .for_each(|(ds, dr)| *ds -= dr);
+    }
+}
+
+impl<L, R> ops::Sub<Dual<R, RW>> for Dual<L, RO>
+where
+    L: CompatibleWith<RO>,
+    R: BorrowMut<[f64]>,
+{
+    type Output = Dual<R,RW>;
+    fn sub(self, rhs: Dual<R, RW>) -> Dual<R,RW>{
+        &self/rhs
+    }
+}
+
+impl<L, R, ML> ops::Sub<Dual<R, RW>> for &Dual<L, ML>
+where
+    L: CompatibleWith<ML>,
+    R: BorrowMut<[f64]>,
+{
+    type Output = Dual<R,RW>;
+    fn sub(self, mut rhs: Dual<R, RW>) -> Dual<R,RW>{
+        check_same_ndiffs!(self, rhs);
+        self.as_slice()
+            .iter()
+            .zip(rhs.as_slice_mut())
+            .for_each(|(ds, dr)| *dr = *ds - *dr);
+        rhs
     }
 }
 
