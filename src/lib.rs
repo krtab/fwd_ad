@@ -1,18 +1,25 @@
-//! A crate implementing forward auto-differentiation, via dual numbers.
+#![feature(external_doc)]
+#![doc(include = "../Readme.md")]
 
 use std::borrow::*;
 use std::marker::PhantomData;
 use std::ops;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub struct RO;
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub struct RW;
+/// A module containing types used to indicated whetehr a `Dual` can write or not in its content.
+pub mod owning_markers {
+    use std::borrow::*;
 
-// TODO Seal trait
-pub trait CompatibleWith<OM>: Borrow<[f64]> {}
-impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
-impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
+    #[derive(PartialEq, Debug, Clone, Copy)]
+    pub struct RO;
+    #[derive(PartialEq, Debug, Clone, Copy)]
+    pub struct RW;
+
+    pub trait CompatibleWith<OM>: Borrow<[f64]> {}
+    impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
+    impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
+}
+
+pub use owning_markers::*;
 
 /// The struct implementing dual numbers.
 ///
@@ -216,6 +223,19 @@ where
     }
 }
 
+impl<T> ops::Neg for Dual<T, RW>
+where
+    T: BorrowMut<[f64]>, //Implies Compatibility with RW
+{
+    type Output = Self;
+    fn neg(mut self) -> Self {
+        for x in self.as_slice_mut() {
+            *x = ops::Neg::neg(*x);
+        }
+        self
+    }
+}
+
 // The feature gate is applied to a module because it is easier than applying it to each sub-item
 #[cfg(feature = "implicit-clone")]
 mod implicit_clone {
@@ -263,21 +283,9 @@ mod implicit_clone {
     }
 }
 
+mod generate_duals;
 mod impl_ops_dual;
 mod impl_ops_scalar_rhs;
-
-impl<T> ops::Neg for Dual<T, RW>
-where
-    T: BorrowMut<[f64]>, //Implies Compatibility with RW
-{
-    type Output = Self;
-    fn neg(mut self) -> Self {
-        for x in self.as_slice_mut() {
-            *x = ops::Neg::neg(*x);
-        }
-        self
-    }
-}
 
 #[cfg(test)]
 mod tests {

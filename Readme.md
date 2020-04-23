@@ -1,6 +1,49 @@
 
+Forward auto-differentiation using dual numbers.
 
-## Comparision with other (forward) AD rust libraries
+This crate allows you to easily write operations on [dual numbers](https://en.wikipedia.org/wiki/Dual_number) and do forward automatic differentiation.
+
+# Examples
+
+Detailled examples are available in the `examples/` directory, but some snippets are reproduced below.
+
+## Rosenbrock function minimization
+
+```rust
+#[macro_use]
+extern crate smolad;
+use smolad::*;
+
+// The factor by which we will descend along the gradient.
+// Rosenbrock function is pretty steep so its quite small.
+const ALPHA : f64 = 1e-3;
+
+fn main() {
+    // Create two duals with two derivatives each, as well as
+    // closures getdx and getdy to get their corresponding derivative
+    generate_duals!{
+        x = 0.; @ getdx
+        y = 0.; @ getdy
+    }
+    for _ in 0..10000 {
+        let xval : f64 = x.val();
+        let yval : f64 = y.val();
+
+        let res = (x.clone() - 1.).powf(2.) + 100.*(y-x.powf(2.)).powf(2.);
+        println!("At x={}, y={}, the rosenbrock function is {}",xval, yval, res.val());
+
+        generate_duals!{
+            newx = xval - ALPHA*getdx(res.view());
+            newy = yval - ALPHA*getdy(res.view());
+        }
+        x = newx;
+        y = newy;
+    }
+}
+```
+
+
+# Comparision with other (forward) AD rust libraries
 
 | crate      | version | multi-variate | higher-order | last update |
 |------------|--------:|:-------------:|:------------:|------------:|
