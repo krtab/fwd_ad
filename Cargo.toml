@@ -1,8 +1,10 @@
 [package]
 name = "smolad"
 version = "0.1.0"
-authors = ["CARCANO Arthur <arthur.carcano@inria.fr>"]
+authors = ["Arthur Carcano <arthur.carcano@inria.fr>"]
 edition = "2018"
+description = "A forward auto-differentiation library"
+readme = "Readme.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
