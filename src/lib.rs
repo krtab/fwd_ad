@@ -5,21 +5,44 @@ use std::borrow::*;
 use std::marker::PhantomData;
 use std::ops;
 
-/// A module containing types used to indicated whetehr a `Dual` can write or not in its content.
+/// A module containing marker types used to indicated whether a `Dual` can write or not in its content.
+///
+/// These marker types are empty struct, only deriving common traits.
 pub mod owning_markers {
     use std::borrow::*;
 
+    /// A type used to indicate read-only capability
+    ///
+    /// An empty struct, only deriving common traits. There isn't anything really interesting to see here.
     #[derive(PartialEq, Debug, Clone, Copy)]
     pub struct RO;
+
+    /// A type used to indicate read-write capability
+    ///
+    /// An empty struct, only deriving common traits. There isn't anything really interesting to see here.
     #[derive(PartialEq, Debug, Clone, Copy)]
     pub struct RW;
 
-    pub trait CompatibleWith<OM>: Borrow<[f64]> {}
+    /// A trait to indicate whether a given container type is compatible with a given RO/RW marker.
+    ///
+    /// This trait is [sealed](https://rust-lang.github.io/api-guidelines/future-proofing.html#c-sealed)
+    /// and cannot be implemented outside this crate.
+    pub trait CompatibleWith<OM>: Borrow<[f64]> + private::Sealed<OM> {}
     impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
     impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
+
+    mod private {
+        use super::*;
+
+        pub trait Sealed<OM> {}
+        impl<T: Borrow<[f64]>> Sealed<RO> for T {}
+        impl<T: BorrowMut<[f64]>> Sealed<RW> for T {}
+    }
 }
 
-pub use owning_markers::*;
+#[doc(inline)]
+pub use owning_markers::CompatibleWith;
+pub use owning_markers::{RO, RW};
 
 /// The struct implementing dual numbers.
 ///
