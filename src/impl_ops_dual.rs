@@ -1,6 +1,13 @@
-use crate::Dual;
+use crate::{CompatibleWith, Dual, RO, RW};
 use std::borrow::*;
 use std::ops;
+
+//
+//
+// Macros
+// ======
+//
+//
 
 macro_rules! check_same_ndiffs {
     ($x : ident , $y : ident) => {
@@ -14,12 +21,143 @@ macro_rules! check_same_ndiffs {
     };
 }
 
-impl<L, R> ops::AddAssign<Dual<R>> for Dual<L>
+// Derive multiple implementations of the ops from the XAssign<&Dual<_,_>> for Dual<_,RW> one
+macro_rules! derive_ops {
+    ($opsname : ident, $opsassignname : ident, $fn_name:ident, $fnassign_name : ident) => {
+        impl<L, R, M> ops::$opsassignname<Dual<R, M>> for Dual<L, RW>
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            fn $fnassign_name(&mut self, rhs: Dual<R, M>) {
+                ops::$opsassignname::$fnassign_name(self, &rhs)
+            }
+        }
+
+        impl<L, R, M> ops::$opsname<Dual<R, M>> for Dual<L, RW>
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            type Output = Self;
+            fn $fn_name(mut self, rhs: Dual<R, M>) -> Self {
+                ops::$opsassignname::$fnassign_name(&mut self, &rhs);
+                self
+            }
+        }
+        impl<L, R, M> ops::$opsname<&Dual<R, M>> for Dual<L, RW>
+        where
+            L: BorrowMut<[f64]>,
+            R: CompatibleWith<M>,
+        {
+            type Output = Self;
+            fn $fn_name(mut self, rhs: &Dual<R, M>) -> Self {
+                ops::$opsassignname::$fnassign_name(&mut self, rhs);
+                self
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R> ops::$opsname<Dual<R, RO>> for Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: Dual<R, RO>) -> Dual<Vec<f64>, RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, &rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, MR> ops::$opsname<&Dual<R, MR>> for Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: CompatibleWith<MR>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: &Dual<R, MR>) -> Dual<Vec<f64>, RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, ML> ops::$opsname<Dual<R, RO>> for &Dual<L, ML>
+        where
+            L: CompatibleWith<ML>,
+            R: CompatibleWith<RO>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: Dual<R, RO>) -> Dual<Vec<f64>, RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, &rhs);
+                res
+            }
+        }
+
+        #[cfg(feature = "implicit-clone")]
+        impl<L, R, MR, ML> ops::$opsname<&Dual<R, MR>> for &Dual<L, ML>
+        where
+            L: CompatibleWith<ML>,
+            R: CompatibleWith<MR>,
+        {
+            type Output = Dual<Vec<f64>, RW>;
+            fn $fn_name(self, rhs: &Dual<R, MR>) -> Dual<Vec<f64>, RW> {
+                let mut res = self.to_owning();
+                ops::$opsassignname::$fnassign_name(&mut res, rhs);
+                res
+            }
+        }
+    };
+}
+
+macro_rules! derive_ops_commut {
+    ($opsname : ident, $opsassignname : ident, $fn_name:ident, $fnassign_name : ident) => {
+        derive_ops!($opsname, $opsassignname, $fn_name, $fnassign_name);
+
+        impl<L, R> ops::$opsname<Dual<R, RW>> for Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: BorrowMut<[f64]>,
+        {
+            type Output = Dual<R, RW>;
+            fn $fn_name(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+                ops::$opsassignname::$fnassign_name(&mut rhs, &self);
+                rhs
+            }
+        }
+
+        impl<L, R> ops::$opsname<Dual<R, RW>> for &Dual<L, RO>
+        where
+            L: CompatibleWith<RO>,
+            R: BorrowMut<[f64]>,
+        {
+            type Output = Dual<R, RW>;
+            fn $fn_name(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+                ops::$opsassignname::$fnassign_name(&mut rhs, self);
+                rhs
+            }
+        }
+    };
+}
+
+//
+//
+// Ops Implementations
+// ===================
+//
+//
+
+impl<L, R, M> ops::AddAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    R: CompatibleWith<M>,
 {
-    fn add_assign(&mut self, rhs: Dual<R>) {
+    fn add_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         self.as_slice_mut()
             .iter_mut()
@@ -28,24 +166,14 @@ where
     }
 }
 
-impl<L, R> ops::Add<Dual<R>> for Dual<L>
+derive_ops_commut!(Add, AddAssign, add, add_assign);
+
+impl<L, R, M> ops::DivAssign<&Dual<R, M>> for Dual<L, RW>
 where
     L: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    R: CompatibleWith<M>,
 {
-    type Output = Self;
-    fn add(mut self, rhs: Dual<R>) -> Self {
-        self += rhs;
-        self
-    }
-}
-
-impl<S, R> ops::DivAssign<Dual<R>> for Dual<S>
-where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
-{
-    fn div_assign(&mut self, rhs: Dual<R>) {
+    fn div_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
@@ -57,24 +185,44 @@ where
     }
 }
 
-impl<S, R> ops::Div<Dual<R>> for Dual<S>
+impl<L, R> ops::Div<Dual<R, RW>> for Dual<L, RO>
 where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    L: CompatibleWith<RO>,
+    R: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn div(mut self, rhs: Dual<R>) -> Dual<S> {
-        self /= rhs;
-        self
+    type Output = Dual<R, RW>;
+    fn div(self, rhs: Dual<R, RW>) -> Dual<R, RW> {
+        &self / rhs
     }
 }
 
-impl<S, R> ops::MulAssign<Dual<R>> for Dual<S>
+impl<L, R, ML> ops::Div<Dual<R, RW>> for &Dual<L, ML>
 where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    L: CompatibleWith<ML>,
+    R: BorrowMut<[f64]>,
 {
-    fn mul_assign(&mut self, rhs: Dual<R>) {
+    type Output = Dual<R, RW>;
+    fn div(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+        check_same_ndiffs!(self, rhs);
+        let vs = self.val();
+        let vr = rhs.val();
+        *rhs.val_mut() = vs / vr;
+        self.diffs()
+            .iter()
+            .zip(rhs.diffs_mut())
+            .for_each(|(ds, dr)| *dr = (*ds - *dr * vs / vr) / vr);
+        rhs
+    }
+}
+
+derive_ops!(Div, DivAssign, div, div_assign);
+
+impl<L, R, M> ops::MulAssign<&Dual<R, M>> for Dual<L, RW>
+where
+    L: BorrowMut<[f64]>,
+    R: CompatibleWith<M>,
+{
+    fn mul_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         let vs = self.val();
         let vr = rhs.val();
@@ -86,24 +234,14 @@ where
     }
 }
 
-impl<S, R> ops::Mul<Dual<R>> for Dual<S>
-where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
-{
-    type Output = Dual<S>;
-    fn mul(mut self, rhs: Dual<R>) -> Dual<S> {
-        self *= rhs;
-        self
-    }
-}
+derive_ops_commut!(Mul, MulAssign, mul, mul_assign);
 
-impl<S, R> ops::SubAssign<Dual<R>> for Dual<S>
+impl<L, R, M> ops::SubAssign<&Dual<R, M>> for Dual<L, RW>
 where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    L: BorrowMut<[f64]>,
+    R: CompatibleWith<M>,
 {
-    fn sub_assign(&mut self, rhs: Dual<R>) {
+    fn sub_assign(&mut self, rhs: &Dual<R, M>) {
         check_same_ndiffs!(self, rhs);
         self.as_slice_mut()
             .iter_mut()
@@ -112,23 +250,40 @@ where
     }
 }
 
-impl<S, R> ops::Sub<Dual<R>> for Dual<S>
+impl<L, R> ops::Sub<Dual<R, RW>> for Dual<L, RO>
 where
-    S: BorrowMut<[f64]>,
-    R: Borrow<[f64]>,
+    L: CompatibleWith<RO>,
+    R: BorrowMut<[f64]>,
 {
-    type Output = Dual<S>;
-    fn sub(mut self, rhs: Dual<R>) -> Dual<S> {
-        self -= rhs;
-        self
+    type Output = Dual<R, RW>;
+    fn sub(self, rhs: Dual<R, RW>) -> Dual<R, RW> {
+        &self / rhs
     }
 }
+
+impl<L, R, ML> ops::Sub<Dual<R, RW>> for &Dual<L, ML>
+where
+    L: CompatibleWith<ML>,
+    R: BorrowMut<[f64]>,
+{
+    type Output = Dual<R, RW>;
+    fn sub(self, mut rhs: Dual<R, RW>) -> Dual<R, RW> {
+        check_same_ndiffs!(self, rhs);
+        self.as_slice()
+            .iter()
+            .zip(rhs.as_slice_mut())
+            .for_each(|(ds, dr)| *dr = *ds - *dr);
+        rhs
+    }
+}
+
+derive_ops!(Sub, SubAssign, sub, sub_assign);
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn generate_pair() -> (Dual<Vec<f64>>, Dual<Vec<f64>>) {
+    fn generate_pair() -> (Dual<Vec<f64>, RW>, Dual<Vec<f64>, RW>) {
         let mut y = Dual::constant(42., 3);
         let mut x = Dual::constant(42., 3);
         x.diffs_mut()[0] = 17.;
@@ -160,8 +315,11 @@ mod tests {
         let mut y = Dual::constant(17., 2);
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
-        let res = (x + y.view()) * y;
-        assert_eq!(res, Dual(vec![(42. + 17.) * 17., 17., 2. * 17. + 42.]));
+        let res = (x + &y) * y;
+        assert_eq!(
+            res,
+            Dual::from(vec![(42. + 17.) * 17., 17., 2. * 17. + 42.])
+        );
     }
 
     #[test]
@@ -171,7 +329,10 @@ mod tests {
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
         let res = x / y;
-        assert_eq!(res, Dual(vec![42. / 17., 1. / 17., -42. / (17. * 17.)]));
+        assert_eq!(
+            res,
+            Dual::from(vec![42. / 17., 1. / 17., -42. / (17. * 17.)])
+        );
     }
 
     #[test]
@@ -204,10 +365,10 @@ mod tests {
 
     #[test]
     fn test_powd() {
-        let x = Dual(vec![3., 1.]);
-        assert!(x
-            .clone()
-            .powdual(x)
-            .is_close(&Dual(vec![27., 27. * (3_f64.ln() + 1.)]), 1e-8))
+        let x: Dual<_, RW> = Dual::from(vec![3., 1.]);
+        assert!(x.clone().powdual(x).is_close(
+            &Dual::<_, RW>::from(vec![27., 27. * (3_f64.ln() + 1.)]),
+            1e-8
+        ))
     }
 }
