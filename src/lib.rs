@@ -1,7 +1,7 @@
 //! A crate implementing forward auto-differentiation, via dual numbers.
 
-use std::marker::PhantomData;
 use std::borrow::*;
+use std::marker::PhantomData;
 use std::ops;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -10,10 +10,9 @@ pub struct RO;
 pub struct RW;
 
 // TODO Seal trait
-pub trait CompatibleWith<OM> : Borrow<[f64]> {}
-impl<T : Borrow<[f64]>> CompatibleWith<RO> for T {}
-impl<T : BorrowMut<[f64]>> CompatibleWith<RW> for T {}
-
+pub trait CompatibleWith<OM>: Borrow<[f64]> {}
+impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
+impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
 
 /// The struct implementing dual numbers.
 ///
@@ -22,20 +21,20 @@ impl<T : BorrowMut<[f64]>> CompatibleWith<RW> for T {}
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Dual<T, M>
 where
-    T : CompatibleWith<M>
+    T: CompatibleWith<M>,
 {
-    content : T,
-    ph_om : PhantomData<M>,
+    content: T,
+    ph_om: PhantomData<M>,
 }
 
-impl<T,M> From<T> for Dual<T, M>
+impl<T, M> From<T> for Dual<T, M>
 where
-    T : CompatibleWith<M>
+    T: CompatibleWith<M>,
 {
-    fn from(x : T) -> Self {
-        Dual{
+    fn from(x: T) -> Self {
+        Dual {
             content: x,
-            ph_om: PhantomData
+            ph_om: PhantomData,
         }
     }
 }
@@ -64,7 +63,6 @@ impl<T, M> Dual<T, M>
 where
     T: CompatibleWith<M>,
 {
-
     /// Returns the content as a slice.
     pub fn as_slice(&self) -> &[f64] {
         self.content.borrow()
@@ -95,7 +93,7 @@ where
     /// Allows comparing to duals by checking whether they are elementwise within `atol` of each other.
     pub fn is_close<S, M2>(&self, b: &Dual<S, M2>, atol: f64) -> bool
     where
-        S: CompatibleWith<M2>
+        S: CompatibleWith<M2>,
     {
         self.as_slice()
             .iter()
@@ -104,7 +102,7 @@ where
     }
 
     /// Returns a non-owning Dual backed by the same container as self.
-    pub fn view(&self) -> Dual<&[f64],RO> {
+    pub fn view(&self) -> Dual<&[f64], RO> {
         Dual::from(self.as_slice())
     }
 }
@@ -112,8 +110,8 @@ where
 /// Methods for Duals that own their content
 impl<T> Dual<T, RW>
 where
-    T : BorrowMut<[f64]>,
-    T : CompatibleWith<RW> //Implied by BorrowMut<[f64]>
+    T: BorrowMut<[f64]>,
+    T: CompatibleWith<RW>, //Implied by BorrowMut<[f64]>
 {
     /// Returns a mutable slice
     pub fn as_slice_mut(&mut self) -> &mut [f64] {
@@ -145,17 +143,17 @@ where
         let expval = self.val().exp2();
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
-            *x *= 2_f64.ln()*expval;
+            *x *= 2_f64.ln() * expval;
         }
         self
     }
 
     /// Returns base^self.
-    pub fn exp_base(mut self, base : f64) -> Self {
+    pub fn exp_base(mut self, base: f64) -> Self {
         let expval = base.powf(self.val());
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
-            *x *= base.ln()*expval;
+            *x *= base.ln() * expval;
         }
         self
     }
@@ -218,7 +216,6 @@ where
     }
 }
 
-
 // The feature gate is applied to a module because it is easier than applying it to each sub-item
 #[cfg(feature = "implicit-clone")]
 mod implicit_clone {
@@ -234,38 +231,36 @@ mod implicit_clone {
     }
 
     impl<T> Dual<T, RO>
+    where
+        T: CompatibleWith<RO>,
+    {
+        clone_impl!(exp());
+        clone_impl!(exp2());
+        clone_impl!(exp_base(base: f64));
+        clone_impl!(ln());
+        clone_impl!(inv());
+        clone_impl!(powf(exp: f64));
+        clone_impl!(abs());
+
+        pub fn powdual<S, M2>(self, exp: Dual<S, M2>) -> Dual<Vec<f64>, RW>
         where
-            T : CompatibleWith<RO>
+            S: CompatibleWith<M2>,
         {
-
-            clone_impl!(exp());
-            clone_impl!(exp2());
-            clone_impl!(exp_base(base : f64));
-            clone_impl!(ln());
-            clone_impl!(inv());
-            clone_impl!(powf(exp : f64));
-            clone_impl!(abs());
-
-            pub fn powdual<S, M2>(self, exp: Dual<S, M2>) -> Dual<Vec<f64>,RW>
-            where
-                S: CompatibleWith<M2>,
-            {
-                let res = self.to_owning();
-                res.powdual(exp)
-            }
+            let res = self.to_owning();
+            res.powdual(exp)
         }
+    }
 
-        impl<T> ops::Neg for Dual<T, RO>
-        where
-            T: CompatibleWith<RO>,
-        {
-            type Output = Dual<Vec<f64>,RW>;
-            fn neg(self) -> Dual<Vec<f64>,RW> {
-                let res = self.to_owning();
-                -res
-            }
+    impl<T> ops::Neg for Dual<T, RO>
+    where
+        T: CompatibleWith<RO>,
+    {
+        type Output = Dual<Vec<f64>, RW>;
+        fn neg(self) -> Dual<Vec<f64>, RW> {
+            let res = self.to_owning();
+            -res
         }
-
+    }
 }
 
 mod impl_ops_dual;
