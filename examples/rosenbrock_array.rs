@@ -11,8 +11,8 @@ const ALPHA: f64 = 1e-3;
 fn main() {
     // Create two duals with two derivatives each, as well as
     // closures getdx and getdy to get their corresponding derivative
-    let mut x: Dual<[f64; 3], RW> = Dual::from([0., 1., 0.]);
-    let mut y: Dual<[f64; 3], RW> = Dual::from([0., 0., 1.]);
+    let mut x: Dual<[f64; 3], RW, f64> = Dual::from([0., 1., 0.]);
+    let mut y: Dual<[f64; 3], RW, f64> = Dual::from([0., 0., 1.]);
     for _ in 0..10000 {
         // x and y will be consummed below, we need to store their value;
         let xval: f64 = x.val();

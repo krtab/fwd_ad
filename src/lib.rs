@@ -1,8 +1,10 @@
 #![feature(external_doc)]
 #![doc(include = "../Readme.md")]
 
+use core::marker::PhantomData;
 use std::borrow::*;
 use std::ops;
+use num_traits;
 
 /// A module containing marker types used to indicated whether a `Dual` can write or not in its content.
 ///
@@ -18,7 +20,7 @@ pub mod owning_markers {
 
     /// A type used to indicate read-write capability
     ///
-    /// An empty struct, only deriving common traits. There isn't anything really interesting to see here.
+    /// An empty struct, only deriving common traits. There isn't anything Scalarly interesting to see here.
     #[derive(PartialEq, Debug, Clone, Copy, Eq, Hash, Default)]
     pub struct RW;
 
@@ -31,9 +33,9 @@ pub mod owning_markers {
     impl OwningMode for RW {}
 
     /// A trait to indicate whether a given container type is compatible with a given RO/RW marker.
-    pub trait CompatibleWith<OM: OwningMode>: Borrow<[f64]> {}
-    impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
-    impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
+    pub trait CompatibleWith<OM: OwningMode, F> : Borrow<[F]> {}
+    impl<F, T: Borrow<[F]>> CompatibleWith<RO, F> for T {}
+    impl<F, T: BorrowMut<[F]>> CompatibleWith<RW, F> for T {}
 
     mod private {
         use super::*;
@@ -48,68 +50,96 @@ pub mod owning_markers {
 pub use owning_markers::CompatibleWith;
 pub use owning_markers::{OwningMode, RO, RW};
 
+pub trait Scalar : num_traits::real::Real + num_traits::NumAssignOps + num_traits::NumAssignRef + num_traits::NumRef {
+    const ZERO : Self;
+    const ONE : Self;
+    const LN_OF2 : Self;
+}
+
+impl Scalar for f64 
+{
+    const ZERO : Self = 0.;
+    const ONE : Self = 1.;
+    const LN_OF2 : Self = std::f64::consts::LN_2;
+}
+
+impl Scalar for f32 
+{
+    const ZERO : Self = 0.;
+    const ONE : Self = 1.;
+    const LN_OF2 : Self = std::f32::consts::LN_2;
+}
+
 /// The struct implementing dual numbers.
 ///
 /// It is parametrized by a type <T> which stands for either a borrowed or an owned container,
 /// and derefences to `[f64]`.
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Dual<T, M>
+pub struct Dual<T, M, F>
 where
     M: OwningMode,
-    T: CompatibleWith<M>,
+    T: CompatibleWith<M,F>,
+    F: Scalar
 {
     content: T,
     om: M,
+    ph_f : PhantomData<F>
 }
 
-impl<T, M> From<T> for Dual<T, M>
+impl<T, M, F> From<T> for Dual<T, M, F>
 where
     M: OwningMode,
-    T: CompatibleWith<M>,
+    T: CompatibleWith<M, F>,
+    F: Scalar
 {
     fn from(x: T) -> Self {
         Dual {
             content: x,
             om: M::default(),
+            ph_f: PhantomData
         }
     }
 }
 
-impl Dual<Vec<f64>, RW> {
-    /// Generates a dual number backed by a Vec<f64> with value `value` and `ndiffs`
+impl<F> Dual<Vec<F>, RW, F> 
+where
+    F: Scalar,
+{
+    /// Generates a dual number backed by a Vec<F> with value `value` and `ndiffs`
     /// differentials, set to 0.
-    pub fn constant(value: f64, ndiffs: usize) -> Self {
-        let mut res = Dual::from(vec![0.; ndiffs + 1]);
+    pub fn constant(value: F, ndiffs: usize) -> Self {
+        let mut res = Dual::from(vec![F::ZERO; ndiffs + 1]);
         res.content[0] = value;
         res
     }
 }
 
 /// Implementations for Duals that do not necessarily own their content.
-impl<T, M> Dual<T, M>
+impl<T, M, F> Dual<T, M, F>
 where
     M: OwningMode,
-    T: CompatibleWith<M>,
+    T: CompatibleWith<M, F>,
+    F: Scalar
 {
     /// Returns the content as a slice.
-    pub fn as_slice(&self) -> &[f64] {
+    pub fn as_slice(&self) -> &[F] {
         self.content.borrow()
     }
 
     // TODO Implement as borrow::ToOwned
     /// Clone the borrowed content, so that the resulting Dual
     /// owns its content.
-    pub fn to_owning(&self) -> Dual<Vec<f64>, RW> {
+    pub fn to_owning(&self) -> Dual<Vec<F>, RW, F> {
         Dual::from(self.as_slice().to_owned())
     }
 
     /// Returns the value of the dual.
-    pub fn val(&self) -> f64 {
+    pub fn val(&self) -> F {
         self.as_slice()[0]
     }
 
     /// Returns a slice of the differentials
-    pub fn diffs(&self) -> &[f64] {
+    pub fn diffs(&self) -> &[F] {
         &self.as_slice()[1..]
     }
 
@@ -119,10 +149,10 @@ where
     }
 
     /// Allows comparing to duals by checking whether they are elementwise within `atol` of each other.
-    pub fn is_close<S, M2>(&self, b: &Dual<S, M2>, atol: f64) -> bool
+    pub fn is_close<S, M2>(&self, b: &Dual<S, M2, F>, atol: F) -> bool
     where
         M2: OwningMode,
-        S: CompatibleWith<M2>,
+        S: CompatibleWith<M2, F>,
     {
         self.as_slice()
             .iter()
@@ -131,33 +161,34 @@ where
     }
 
     /// Returns a non-owning Dual backed by the same container as self.
-    pub fn view<'a, S: ?Sized>(&'a self) -> Dual<&'a S, RO>
+    pub fn view<'a, S: ?Sized>(&'a self) -> Dual<&'a S, RO, F>
     where
         T: Borrow<S>,
-        &'a S: CompatibleWith<RO>,
+        &'a S: CompatibleWith<RO, F>,
     {
         Dual::from(self.content.borrow())
     }
 }
 
 /// Methods for Duals that own their content
-impl<T> Dual<T, RW>
+impl<T, F> Dual<T, RW, F>
 where
-    T: BorrowMut<[f64]>,
-    T: CompatibleWith<RW>, //Implied by BorrowMut<[f64]>
+    T: BorrowMut<[F]>,
+    T: CompatibleWith<RW, F>,
+    F : Scalar,
 {
     /// Returns a mutable slice
-    pub fn as_slice_mut(&mut self) -> &mut [f64] {
+    pub fn as_slice_mut(&mut self) -> &mut [F] {
         self.content.borrow_mut()
     }
 
     /// Return a mutable reference to the value
-    pub fn val_mut(&mut self) -> &mut f64 {
+    pub fn val_mut(&mut self) -> &mut F {
         unsafe { self.as_slice_mut().get_unchecked_mut(0) }
     }
 
     /// Return a mutable slice of the differentials
-    pub fn diffs_mut(&mut self) -> &mut [f64] {
+    pub fn diffs_mut(&mut self) -> &mut [F] {
         &mut self.as_slice_mut()[1..]
     }
 
@@ -176,13 +207,13 @@ where
         let expval = self.val().exp2();
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
-            *x *= 2_f64.ln() * expval;
+            *x *= F::LN_OF2 * expval;
         }
         self
     }
 
     /// Returns base^self.
-    pub fn exp_base(mut self, base: f64) -> Self {
+    pub fn exp_base(mut self, base: F) -> Self {
         let expval = base.powf(self.val());
         *self.val_mut() = expval;
         for x in self.diffs_mut() {
@@ -205,31 +236,31 @@ where
     pub fn inv(mut self) -> Self {
         let vs = self.val();
         let svs = vs * vs;
-        *self.val_mut() = 1. / vs;
-        self.diffs_mut().iter_mut().for_each(|ds| *ds *= -1. / svs);
+        *self.val_mut() = F::ONE / vs;
+        self.diffs_mut().iter_mut().for_each(|ds| *ds *= -F::ONE / svs);
         self
     }
 
     /// Returns self^exp.
-    pub fn powf(mut self, exp: f64) -> Self {
+    pub fn powf(mut self, exp: F) -> Self {
         let vs = self.val();
         *self.val_mut() = vs.powf(exp);
         self.diffs_mut()
             .iter_mut()
-            .for_each(|ds| *ds *= exp * vs.powf(exp - 1.));
+            .for_each(|ds| *ds *= exp * vs.powf(exp - F::ONE));
         self
     }
 
     /// Returns self^exp.
-    pub fn powdual<S, M2>(mut self, exp: Dual<S, M2>) -> Self
+    pub fn powdual<S, M2>(mut self, exp: Dual<S, M2, F>) -> Self
     where
         M2: OwningMode,
-        S: CompatibleWith<M2>,
+        S: CompatibleWith<M2, F>,
     {
         let vs = self.val();
-        if vs == 0. {
+        if vs == F::ZERO {
             for ds in self.diffs_mut() {
-                *ds = 0.
+                *ds = F::ZERO
             }
             return self;
         }
@@ -238,21 +269,23 @@ where
         self.diffs_mut()
             .iter_mut()
             .zip(exp.diffs())
-            .for_each(|(ds, de)| *ds = vs.powf(ve - 1.) * (vs * de * vs.ln() + ve * *ds));
+            .for_each(|(ds, de)| *ds = vs.powf(ve - F::ONE) * (vs * de * vs.ln() + ve * *ds));
         self
     }
 
     pub fn abs(mut self) -> Self {
-        if self.val() < 0. {
-            self *= -1.;
+        if self.val() < F::ZERO {
+            self *= -F::ONE;
         };
         self
     }
 }
 
-impl<T> ops::Neg for Dual<T, RW>
+impl<T, F> ops::Neg for Dual<T, RW, F>
 where
-    T: BorrowMut<[f64]>, //Implies Compatibility with RW
+    T: BorrowMut<[F]>, //Implies Compatibility with RW
+    T: CompatibleWith<RW, F>,
+    F : Scalar
 {
     type Output = Self;
     fn neg(mut self) -> Self {
@@ -270,41 +303,43 @@ mod implicit_clone {
 
     macro_rules! clone_impl {
         {$fname: ident($($param : ident : $ptype : ty),*)} => {
-            pub fn $fname(&self,$($param : $ptype),*) -> Dual<Vec<f64>, RW> {
+            pub fn $fname(&self,$($param : $ptype),*) -> Dual<Vec<F>, RW, F> {
                     let res = self.to_owning();
                     res.$fname($($param),*)
             }
         }
     }
 
-    impl<T> Dual<T, RO>
+    impl<T, F> Dual<T, RO, F>
     where
-        T: CompatibleWith<RO>,
+        T: CompatibleWith<RO, F>,
+        F: Scalar,
     {
         clone_impl!(exp());
         clone_impl!(exp2());
-        clone_impl!(exp_base(base: f64));
+        clone_impl!(exp_base(base: F));
         clone_impl!(ln());
         clone_impl!(inv());
-        clone_impl!(powf(exp: f64));
+        clone_impl!(powf(exp: F));
         clone_impl!(abs());
 
-        pub fn powdual<S, M2>(self, exp: Dual<S, M2>) -> Dual<Vec<f64>, RW>
+        pub fn powdual<S, M2>(self, exp: Dual<S, M2, F>) -> Dual<Vec<F>, RW, F>
         where
             M2: OwningMode,
-            S: CompatibleWith<M2>,
+            S: CompatibleWith<M2, F>,
         {
             let res = self.to_owning();
             res.powdual(exp)
         }
     }
 
-    impl<T> ops::Neg for Dual<T, RO>
+    impl<T, F> ops::Neg for Dual<T, RO, F>
     where
-        T: CompatibleWith<RO>,
+        T: CompatibleWith<RO, F>,
+        F: Scalar
     {
-        type Output = Dual<Vec<f64>, RW>;
-        fn neg(self) -> Dual<Vec<f64>, RW> {
+        type Output = Dual<Vec<F>, RW, F>;
+        fn neg(self) -> Dual<Vec<F>, RW, F> {
             let res = self.to_owning();
             -res
         }
@@ -315,11 +350,27 @@ mod generate_duals;
 mod impl_ops_dual;
 mod impl_ops_scalar_rhs;
 
+pub mod instanciations {
+
+
+    pub mod vecf64 {
+        use super::super::*;
+        pub type Owning = Dual<Vec<f64>,RW,f64>;
+        pub type View<'a> = Dual<&'a [f64], RO, f64>;
+    }
+
+    pub mod vecf32 {
+        use super::super::*;
+        pub type Owning = Dual<Vec<f32>, RW, f32>;
+        pub type View<'a> = Dual<&'a [f32], RO, f32>;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn generate() -> Dual<Vec<f64>, RW> {
+    fn generate() -> Dual<Vec<f64>, RW, f64> {
         let mut x = Dual::constant(42., 3);
         x.diffs_mut()[0] = 17.;
         x.diffs_mut()[2] = -7.;
