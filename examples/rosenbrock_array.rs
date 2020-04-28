@@ -11,10 +11,8 @@ const ALPHA: f64 = 1e-3;
 fn main() {
     // Create two duals with two derivatives each, as well as
     // closures getdx and getdy to get their corresponding derivative
-    generate_duals! {
-        x = 0.; @ getdx
-        y = 0.; @ getdy
-    }
+    let mut x: Dual<[f64; 3], RW> = Dual::from([0., 1., 0.]);
+    let mut y: Dual<[f64; 3], RW> = Dual::from([0., 0., 1.]);
     for _ in 0..10000 {
         // x and y will be consummed below, we need to store their value;
         let xval: f64 = x.val();
@@ -30,11 +28,11 @@ fn main() {
 
         // We generate two new duals containing the new variables.
         // We could save one allocation by directly modifying x and y but it would be less user friendly.
-        generate_duals! {
-            newx = xval - ALPHA*getdx(res.view());
-            newy = yval - ALPHA*getdy(res.view());
-        }
-        x = newx;
-        y = newy;
+        let dresdx = res.diffs()[0];
+        let dresdy = res.diffs()[1];
+        *x.val_mut() -= ALPHA * dresdx;
+        x.diffs_mut().copy_from_slice(&[1., 0.]);
+        *y.val_mut() -= ALPHA * dresdy;
+        y.diffs_mut().copy_from_slice(&[0., 1.]);
     }
 }

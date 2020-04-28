@@ -132,8 +132,12 @@ where
     }
 
     /// Returns a non-owning Dual backed by the same container as self.
-    pub fn view(&self) -> Dual<&[f64], RO> {
-        Dual::from(self.as_slice())
+    pub fn view<'a, S: ?Sized>(&'a self) -> Dual<&'a S, RO>
+    where
+        T: Borrow<S>,
+        &'a S: CompatibleWith<RO>,
+    {
+        Dual::from(self.content.borrow())
     }
 }
 
