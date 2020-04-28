@@ -2,7 +2,6 @@
 #![doc(include = "../Readme.md")]
 
 use std::borrow::*;
-use std::marker::PhantomData;
 use std::ops;
 
 /// A module containing marker types used to indicated whether a `Dual` can write or not in its content.
@@ -14,35 +13,40 @@ pub mod owning_markers {
     /// A type used to indicate read-only capability
     ///
     /// An empty struct, only deriving common traits. There isn't anything really interesting to see here.
-    #[derive(PartialEq, Debug, Clone, Copy)]
+    #[derive(PartialEq, Debug, Clone, Copy, Eq, Hash, Default)]
     pub struct RO;
 
     /// A type used to indicate read-write capability
     ///
     /// An empty struct, only deriving common traits. There isn't anything really interesting to see here.
-    #[derive(PartialEq, Debug, Clone, Copy)]
+    #[derive(PartialEq, Debug, Clone, Copy, Eq, Hash, Default)]
     pub struct RW;
 
-    /// A trait to indicate whether a given container type is compatible with a given RO/RW marker.
+    /// A trait regrouping owning mode markers
     ///
     /// This trait is [sealed](https://rust-lang.github.io/api-guidelines/future-proofing.html#c-sealed)
     /// and cannot be implemented outside this crate.
-    pub trait CompatibleWith<OM>: Borrow<[f64]> + private::Sealed<OM> {}
+    pub trait OwningMode: private::Sealed + Default {}
+    impl OwningMode for RO {}
+    impl OwningMode for RW {}
+
+    /// A trait to indicate whether a given container type is compatible with a given RO/RW marker.
+    pub trait CompatibleWith<OM: OwningMode>: Borrow<[f64]> {}
     impl<T: Borrow<[f64]>> CompatibleWith<RO> for T {}
     impl<T: BorrowMut<[f64]>> CompatibleWith<RW> for T {}
 
     mod private {
         use super::*;
 
-        pub trait Sealed<OM> {}
-        impl<T: Borrow<[f64]>> Sealed<RO> for T {}
-        impl<T: BorrowMut<[f64]>> Sealed<RW> for T {}
+        pub trait Sealed {}
+        impl Sealed for RO {}
+        impl Sealed for RW {}
     }
 }
 
 #[doc(inline)]
 pub use owning_markers::CompatibleWith;
-pub use owning_markers::{RO, RW};
+pub use owning_markers::{OwningMode, RO, RW};
 
 /// The struct implementing dual numbers.
 ///
@@ -51,20 +55,22 @@ pub use owning_markers::{RO, RW};
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Dual<T, M>
 where
+    M: OwningMode,
     T: CompatibleWith<M>,
 {
     content: T,
-    ph_om: PhantomData<M>,
+    om: M,
 }
 
 impl<T, M> From<T> for Dual<T, M>
 where
+    M: OwningMode,
     T: CompatibleWith<M>,
 {
     fn from(x: T) -> Self {
         Dual {
             content: x,
-            ph_om: PhantomData,
+            om: M::default(),
         }
     }
 }
@@ -79,18 +85,10 @@ impl Dual<Vec<f64>, RW> {
     }
 }
 
-// impl<S,T> From<Dual<T>> for Dual<S>
-// where
-//     S: From<T>
-// {
-//     fn from(dualt : Dual<T>) -> Dual<S> {
-//         Dual(From::from(dualt.0))
-//     }
-// }
-
 /// Implementations for Duals that do not necessarily own their content.
 impl<T, M> Dual<T, M>
 where
+    M: OwningMode,
     T: CompatibleWith<M>,
 {
     /// Returns the content as a slice.
@@ -123,6 +121,7 @@ where
     /// Allows comparing to duals by checking whether they are elementwise within `atol` of each other.
     pub fn is_close<S, M2>(&self, b: &Dual<S, M2>, atol: f64) -> bool
     where
+        M2: OwningMode,
         S: CompatibleWith<M2>,
     {
         self.as_slice()
@@ -224,6 +223,7 @@ where
     /// Returns self^exp.
     pub fn powdual<S, M2>(mut self, exp: Dual<S, M2>) -> Self
     where
+        M2: OwningMode,
         S: CompatibleWith<M2>,
     {
         let vs = self.val();
@@ -291,6 +291,7 @@ mod implicit_clone {
 
         pub fn powdual<S, M2>(self, exp: Dual<S, M2>) -> Dual<Vec<f64>, RW>
         where
+            M2: OwningMode,
             S: CompatibleWith<M2>,
         {
             let res = self.to_owning();

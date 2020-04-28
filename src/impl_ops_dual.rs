@@ -1,4 +1,4 @@
-use crate::{CompatibleWith, Dual, RO, RW};
+use crate::{CompatibleWith, Dual, OwningMode, RO, RW};
 use std::borrow::*;
 use std::ops;
 
@@ -26,6 +26,7 @@ macro_rules! derive_ops {
     ($opsname : ident, $opsassignname : ident, $fn_name:ident, $fnassign_name : ident) => {
         impl<L, R, M> ops::$opsassignname<Dual<R, M>> for Dual<L, RW>
         where
+            M: OwningMode,
             L: BorrowMut<[f64]>,
             R: CompatibleWith<M>,
         {
@@ -36,6 +37,7 @@ macro_rules! derive_ops {
 
         impl<L, R, M> ops::$opsname<Dual<R, M>> for Dual<L, RW>
         where
+            M: OwningMode,
             L: BorrowMut<[f64]>,
             R: CompatibleWith<M>,
         {
@@ -47,6 +49,7 @@ macro_rules! derive_ops {
         }
         impl<L, R, M> ops::$opsname<&Dual<R, M>> for Dual<L, RW>
         where
+            M: OwningMode,
             L: BorrowMut<[f64]>,
             R: CompatibleWith<M>,
         {
@@ -74,6 +77,7 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, R, MR> ops::$opsname<&Dual<R, MR>> for Dual<L, RO>
         where
+            MR: OwningMode,
             L: CompatibleWith<RO>,
             R: CompatibleWith<MR>,
         {
@@ -88,6 +92,7 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, R, ML> ops::$opsname<Dual<R, RO>> for &Dual<L, ML>
         where
+            ML: OwningMode,
             L: CompatibleWith<ML>,
             R: CompatibleWith<RO>,
         {
@@ -102,6 +107,8 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, R, MR, ML> ops::$opsname<&Dual<R, MR>> for &Dual<L, ML>
         where
+            MR: OwningMode,
+            ML: OwningMode,
             L: CompatibleWith<ML>,
             R: CompatibleWith<MR>,
         {
@@ -154,6 +161,7 @@ macro_rules! derive_ops_commut {
 
 impl<L, R, M> ops::AddAssign<&Dual<R, M>> for Dual<L, RW>
 where
+    M: OwningMode,
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
@@ -170,6 +178,7 @@ derive_ops_commut!(Add, AddAssign, add, add_assign);
 
 impl<L, R, M> ops::DivAssign<&Dual<R, M>> for Dual<L, RW>
 where
+    M: OwningMode,
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
@@ -198,6 +207,7 @@ where
 
 impl<L, R, ML> ops::Div<Dual<R, RW>> for &Dual<L, ML>
 where
+    ML: OwningMode,
     L: CompatibleWith<ML>,
     R: BorrowMut<[f64]>,
 {
@@ -219,6 +229,7 @@ derive_ops!(Div, DivAssign, div, div_assign);
 
 impl<L, R, M> ops::MulAssign<&Dual<R, M>> for Dual<L, RW>
 where
+    M: OwningMode,
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
@@ -238,6 +249,7 @@ derive_ops_commut!(Mul, MulAssign, mul, mul_assign);
 
 impl<L, R, M> ops::SubAssign<&Dual<R, M>> for Dual<L, RW>
 where
+    M: OwningMode,
     L: BorrowMut<[f64]>,
     R: CompatibleWith<M>,
 {
@@ -263,6 +275,7 @@ where
 
 impl<L, R, ML> ops::Sub<Dual<R, RW>> for &Dual<L, ML>
 where
+    ML: OwningMode,
     L: CompatibleWith<ML>,
     R: BorrowMut<[f64]>,
 {
