@@ -396,9 +396,9 @@ mod tests {
 
     #[test]
     fn test_powd() {
-        let x: Dual<_, RW> = Dual::from(vec![3., 1.]);
+        let x: Dual<_, RW, f64> = Dual::from(vec![3., 1.]);
         assert!(x.clone().powdual(x).is_close(
-            &Dual::<_, RW>::from(vec![27., 27. * (3_F.ln() + 1.)]),
+            &Dual::<_, RW, f64>::from(vec![27., 27. * (3_f64.ln() + 1.)]),
             1e-8
         ))
     }

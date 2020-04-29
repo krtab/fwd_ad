@@ -16,8 +16,8 @@
 /// }
 /// assert_eq!(getdx(x.view()), 1.);
 /// assert_eq!(getdx(y.view()), 0.);
-/// assert_eq!(x, Dual::<Vec<f64>,RW>::from(vec![17.,1.,0.]));
-/// assert_eq!(y, Dual::<Vec<f64>,RW>::from(vec![42.,0.,1.]));
+/// assert_eq!(x, Dual::<Vec<f64>,RW, f64>::from(vec![17.,1.,0.]));
+/// assert_eq!(y, Dual::<Vec<f64>,RW, f64>::from(vec![42.,0.,1.]));
 /// # }
 /// ```
 #[macro_export]
@@ -26,11 +26,11 @@ macro_rules! generate_duals {
         let ndiffs : usize = [$($value),*].len();
         let mut i : usize = 0;
         $(
-            let mut $varname : Dual<Vec<f64>,RW> = Dual::constant($value, ndiffs);
+            let mut $varname : Dual<Vec<f64>,RW, f64> = Dual::constant($value, ndiffs);
             $varname.diffs_mut()[i] = 1.;
 
             $(
-                let $gettername = move |x : Dual<&[f64],RO>| x.diffs()[i];
+                let $gettername = move |x : Dual<&[f64],RO, f64>| x.diffs()[i];
             )?
 
             i+=1;
