@@ -7,7 +7,7 @@ This crate allows you to easily write operations on [dual numbers](https://en.wi
 
  1. **Clone-free** by default. Fwd:AD will never clone memory in its functions (except `to_owning()`) and `std::ops` implementations, leveraging Rust's ownership system to ensure correctness memory-wise, and leaving it up to the user to be explicit as to when cloning should happen.
  2. **Automatic cloning** on demand. If passed the `implicit-clone` feature, Fwd:AD will implicitly clone `Dual`s when needed. Deciding whether to clone or not is entirely done via the type-system, and hence at compile time.
- 3. **Generic in memory location**: Fwd:AD's structs are generic over a container type, allowing them to be backed by any container of your choice: `Vec` to rely on the heap, arrays if you're more of a stack-person, or any flavor you like.
+ 3. **Generic in memory location**: Fwd:AD's structs are generic over a container type, allowing them to be backed by any container of your choice: `Vec` to rely on the heap, arrays if you're more of a stack-person, or other. For example, it can be used with `&mut [f64]` to allow an FFI API that won't need to copy memory at its frontier.
 
 ## Examples
 
@@ -50,9 +50,11 @@ fn main() {
 
 # Comparision with other (forward) AD rust libraries
 
+The last-update column represent the last time the corresponding crate was checked. Crates may have evolved since.
+
 | crate      | version | multi-variate | higher-order | last update |
 |------------|--------:|:-------------:|:------------:|------------:|
-| **Fwd:AD** |   0.1.0 |       ✔️       |      ❌       |  2020-04-23 |
+| **Fwd:AD** |   0.1.0 |       ✔️       |      ❌       |  2020-04-29 |
 | ad         |   0.1.0 |       ❌       |      ❌       |  2020-01-01 |
 | autodiff   |   0.1.9 |       ❌       |      ❌       |  2019-11-07 |
 | descent¹   |     0.3 |       ✔️       | (2nd order?) |  2018-12-10 |

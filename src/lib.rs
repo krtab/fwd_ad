@@ -1,5 +1,8 @@
-
-#![cfg_attr(all(doc,not(doctest)), feature(external_doc), doc (include = "../Readme.md"))]
+#![cfg_attr(
+    all(doc, not(doctest)),
+    feature(external_doc),
+    doc(include = "../Readme.md")
+)]
 
 use core::marker::PhantomData;
 use std::ops;

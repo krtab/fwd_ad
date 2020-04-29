@@ -3,8 +3,12 @@ name = "fwd_ad"
 version = "0.1.0"
 authors = ["Arthur Carcano <arthur.carcano@inria.fr>"]
 edition = "2018"
-description = "A forward auto-differentiation library"
+description = "Forward auto-differentiation, allowing its user to manage memory location and minimize copying."
 readme = "Readme.md"
+license = "MIT"
+repository = 'https://gitlab.inria.fr/InBio/Public/fwd_ad'
+keywords = ['automatic-differentiation', 'forward', 'dual', 'ad']
+categories=["mathematics", "science"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
