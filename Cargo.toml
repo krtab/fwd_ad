@@ -7,7 +7,7 @@ description = "Forward auto-differentiation, allowing its user to manage memory 
 readme = "Readme.md"
 license = "MIT"
 repository = 'https://gitlab.inria.fr/InBio/Public/fwd_ad'
-keywords = ['automatic-differentiation', 'forward', 'dual', 'ad']
+keywords = ['automatic', 'differentiation', 'forward', 'dual', 'ad']
 categories=["mathematics", "science"]
 
 exclude = [".gitlab-ci.yml"]
