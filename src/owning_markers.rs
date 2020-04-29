@@ -2,8 +2,7 @@
 //!
 //! These marker types are empty struct, only deriving common traits.
 
-
-use std::borrow::*;
+use super::view_and_owning_traits::{ROAble, RWAble};
 
 /// A type used to indicate read-only capability
 ///
@@ -27,9 +26,10 @@ impl OwningMode for RW {}
 
 /// A trait to indicate whether a given container type is compatible with a given RO/RW marker.
 pub trait CompatibleWith<OM: OwningMode, F> {}
-/// Being read-only means you only need to have the capability to borrow the content, not necessarily mutably.
-impl<F, T: Borrow<[F]>> CompatibleWith<RO, F> for T {}
-impl<F, T: BorrowMut<[F]>> CompatibleWith<RW, F> for T {}
+/// Being read-only means containers only need to have the capability to borrow their content, not necessarily mutably.
+impl<F, T: ROAble<F> + ?Sized> CompatibleWith<RO, F> for T {}
+/// Being read-write means containers need to be able to mutably borrow their content.
+impl<F, T: RWAble<F> + ?Sized> CompatibleWith<RW, F> for T {}
 
 mod private {
     use super::*;

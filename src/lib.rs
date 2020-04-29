@@ -1,35 +1,33 @@
-#![feature(external_doc)]
-#![doc(include = "../Readme.md")]
+
+#![cfg_attr(doc, feature(external_doc), doc (include = "../Readme.md"))]
 
 use core::marker::PhantomData;
-use std::borrow::*;
 use std::ops;
-use num_traits;
 
-pub mod owning_markers; 
+pub mod view_and_owning_traits;
+pub use view_and_owning_traits::{ROAble, RWAble, ToOwning, ToView};
 
-#[doc(inline)]
-pub use owning_markers::CompatibleWith;
-pub use owning_markers::{OwningMode, RO, RW};
+pub mod owning_markers;
+pub use owning_markers::{CompatibleWith, OwningMode, RO, RW};
 
-pub trait Scalar : num_traits::real::Real + num_traits::NumAssignOps + num_traits::NumAssignRef + num_traits::NumRef {
-    const ZERO : Self;
-    const ONE : Self;
-    const LN_OF2 : Self;
+pub trait Scalar:
+    num_traits::real::Real + num_traits::NumAssignOps + num_traits::NumAssignRef + num_traits::NumRef
+{
+    const ZERO: Self;
+    const ONE: Self;
+    const LN_OF2: Self;
 }
 
-impl Scalar for f64 
-{
-    const ZERO : Self = 0.;
-    const ONE : Self = 1.;
-    const LN_OF2 : Self = std::f64::consts::LN_2;
+impl Scalar for f64 {
+    const ZERO: Self = 0.;
+    const ONE: Self = 1.;
+    const LN_OF2: Self = std::f64::consts::LN_2;
 }
 
-impl Scalar for f32 
-{
-    const ZERO : Self = 0.;
-    const ONE : Self = 1.;
-    const LN_OF2 : Self = std::f32::consts::LN_2;
+impl Scalar for f32 {
+    const ZERO: Self = 0.;
+    const ONE: Self = 1.;
+    const LN_OF2: Self = std::f32::consts::LN_2;
 }
 
 /// The struct implementing dual numbers.
@@ -40,30 +38,30 @@ impl Scalar for f32
 pub struct Dual<T, M, F>
 where
     M: OwningMode,
-    T: CompatibleWith<M,F>,
-    F: Scalar
+    T: CompatibleWith<M, F>,
+    F: Scalar,
 {
     content: T,
     om: M,
-    ph_f : PhantomData<F>
+    ph_f: PhantomData<F>,
 }
 
 impl<T, M, F> From<T> for Dual<T, M, F>
 where
     M: OwningMode,
     T: CompatibleWith<M, F>,
-    F: Scalar
+    F: Scalar,
 {
     fn from(x: T) -> Self {
         Dual {
             content: x,
             om: M::default(),
-            ph_f: PhantomData
+            ph_f: PhantomData,
         }
     }
 }
 
-impl<F> Dual<Vec<F>, RW, F> 
+impl<F> Dual<Vec<F>, RW, F>
 where
     F: Scalar,
 {
@@ -80,20 +78,27 @@ where
 impl<T, M, F> Dual<T, M, F>
 where
     M: OwningMode,
-    T: Borrow<[F]>,
+    T: ROAble<F>,
     T: CompatibleWith<M, F>,
-    F: Scalar
+    F: Scalar,
 {
     /// Returns the content as a slice.
     pub fn as_slice(&self) -> &[F] {
-        self.content.borrow()
+        self.content.ro()
     }
 
     // TODO Implement as borrow::ToOwned
     /// Clone the borrowed content, so that the resulting Dual
     /// owns its content.
-    pub fn to_owning(&self) -> Dual<Vec<F>, RW, F> {
-        Dual::from(self.as_slice().to_owned())
+    // pub fn to_owning(&self) -> Dual<Vec<F>, RW, F> {
+    //     Dual::from(self.as_slice().to_owned())
+    // }
+
+    pub fn to_owning(&self) -> Dual<T::Owning, RW, F>
+    where
+        T: ToOwning<F>,
+    {
+        Dual::from(self.content.to_owning())
     }
 
     /// Returns the value of the dual.
@@ -115,7 +120,7 @@ where
     pub fn is_close<S, M2>(&self, b: &Dual<S, M2, F>, atol: F) -> bool
     where
         M2: OwningMode,
-        S: Borrow<[F]>,
+        S: ROAble<F>,
         S: CompatibleWith<M2, F>,
     {
         self.as_slice()
@@ -125,25 +130,24 @@ where
     }
 
     /// Returns a non-owning Dual backed by the same container as self.
-    pub fn view<'a, S: ?Sized>(&'a self) -> Dual<&'a S, RO, F>
+    pub fn view<'a>(&'a self) -> Dual<&'a T::ViewType, RO, F>
     where
-        T: Borrow<S>,
-        &'a S: CompatibleWith<RO, F>,
+        T: ToView<F>,
+        &'a T::ViewType: CompatibleWith<RO, F>,
     {
-        Dual::from(self.content.borrow())
+        Dual::from(self.content.view())
     }
 }
 
 /// Methods for Duals that own their content
 impl<T, F> Dual<T, RW, F>
 where
-    T: BorrowMut<[F]>,
-    T: CompatibleWith<RW, F>,
-    F : Scalar,
+    T: RWAble<F>,
+    F: Scalar,
 {
     /// Returns a mutable slice
     pub fn as_slice_mut(&mut self) -> &mut [F] {
-        self.content.borrow_mut()
+        self.content.rw()
     }
 
     /// Return a mutable reference to the value
@@ -201,7 +205,9 @@ where
         let vs = self.val();
         let svs = vs * vs;
         *self.val_mut() = F::ONE / vs;
-        self.diffs_mut().iter_mut().for_each(|ds| *ds *= -F::ONE / svs);
+        self.diffs_mut()
+            .iter_mut()
+            .for_each(|ds| *ds *= -F::ONE / svs);
         self
     }
 
@@ -219,7 +225,7 @@ where
     pub fn powdual<S, M2>(mut self, exp: Dual<S, M2, F>) -> Self
     where
         M2: OwningMode,
-        S: Borrow<[F]>,
+        S: ROAble<F>,
         S: CompatibleWith<M2, F>,
     {
         let vs = self.val();
@@ -238,19 +244,20 @@ where
         self
     }
 
-    pub fn abs(mut self) -> Self {
-        if self.val() < F::ZERO {
-            self *= -F::ONE;
-        };
-        self
+    pub fn abs(self) -> Self {
+        let v = self.val();
+        if v < F::ZERO {
+            -self
+        } else {
+            self
+        }
     }
 }
 
 impl<T, F> ops::Neg for Dual<T, RW, F>
 where
-    T: BorrowMut<[F]>, //Implies Compatibility with RW
-    T: CompatibleWith<RW, F>,
-    F : Scalar
+    T: RWAble<F>,
+    F: Scalar,
 {
     type Output = Self;
     fn neg(mut self) -> Self {
@@ -268,7 +275,7 @@ mod implicit_clone {
 
     macro_rules! clone_impl {
         {$fname: ident($($param : ident : $ptype : ty),*)} => {
-            pub fn $fname(&self,$($param : $ptype),*) -> Dual<Vec<F>, RW, F> {
+            pub fn $fname(&self,$($param : $ptype),*) -> Dual<T::Owning, RW, F> {
                     let res = self.to_owning();
                     res.$fname($($param),*)
             }
@@ -277,8 +284,7 @@ mod implicit_clone {
 
     impl<T, F> Dual<T, RO, F>
     where
-        T: Borrow<[F]>,
-        T: CompatibleWith<RO, F>,
+        T: ToOwning<F>,
         F: Scalar,
     {
         clone_impl!(exp());
@@ -289,10 +295,10 @@ mod implicit_clone {
         clone_impl!(powf(exp: F));
         clone_impl!(abs());
 
-        pub fn powdual<S, M2>(self, exp: Dual<S, M2, F>) -> Dual<Vec<F>, RW, F>
+        pub fn powdual<S, M2>(self, exp: Dual<S, M2, F>) -> Dual<T::Owning, RW, F>
         where
             M2: OwningMode,
-            S: Borrow<[F]>,
+            S: ROAble<F>,
             S: CompatibleWith<M2, F>,
         {
             let res = self.to_owning();
@@ -302,12 +308,11 @@ mod implicit_clone {
 
     impl<T, F> ops::Neg for Dual<T, RO, F>
     where
-        T: Borrow<[F]>,
-        T: CompatibleWith<RO, F>,
-        F: Scalar
+        T: ToOwning<F>,
+        F: Scalar,
     {
-        type Output = Dual<Vec<F>, RW, F>;
-        fn neg(self) -> Dual<Vec<F>, RW, F> {
+        type Output = Dual<T::Owning, RW, F>;
+        fn neg(self) -> Self::Output {
             let res = self.to_owning();
             -res
         }
@@ -320,10 +325,9 @@ mod impl_ops_scalar_rhs;
 
 pub mod instanciations {
 
-
     pub mod vecf64 {
         use super::super::*;
-        pub type Owning = Dual<Vec<f64>,RW,f64>;
+        pub type Owning = Dual<Vec<f64>, RW, f64>;
         pub type View<'a> = Dual<&'a [f64], RO, f64>;
     }
 

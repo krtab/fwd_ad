@@ -1,3 +1,5 @@
+smolad a crate for autodiff
+==========================
 
 Forward auto-differentiation using dual numbers.
 
