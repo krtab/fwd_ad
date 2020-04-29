@@ -11,14 +11,14 @@ readme = "Readme.md"
 [features]
 default = []
 implicit-clone = []
+bench = ["criterion"]
 
 
 [dependencies]
 num-traits = "0.2.11"
-
-[dev-dependencies]
-criterion = "0.3"
+criterion = {version = "0.3", optional=true}
 
 [[bench]]
 name = "bench_ops_dual"
 harness = false
+required-features = ["bench"]
