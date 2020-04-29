@@ -29,6 +29,7 @@ macro_rules! derive_ops {
             M: OwningMode,
             L: BorrowMut<[F]>,
             L: CompatibleWith<RW,F>,
+            R: Borrow<[F]>,
             R: CompatibleWith<M, F>,
             F: Scalar
         {
@@ -41,6 +42,7 @@ macro_rules! derive_ops {
         where
             M: OwningMode,
             L: BorrowMut<[F]>,
+            R: Borrow<[F]>,
             R: CompatibleWith<M, F>,
             F: Scalar
         {
@@ -54,6 +56,7 @@ macro_rules! derive_ops {
         where
             M: OwningMode,
             L: BorrowMut<[F]>,
+            R: Borrow<[F]>,
             R: CompatibleWith<M, F>,
             F: Scalar
         {
@@ -67,7 +70,9 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, R, F> ops::$opsname<Dual<R, RO, F>> for Dual<L, RO, F>
         where
+            L: Borrow<[F]>,
             L: CompatibleWith<RO, F>,
+            R: Borrow<[F]>,
             R: CompatibleWith<RO, F>,
             F: Scalar
         {
@@ -82,8 +87,10 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, R, MR, F> ops::$opsname<&Dual<R, MR, F>> for Dual<L, RO, F>
         where
-            MR: OwningMode,
+            L: Borrow<[F]>,
             L: CompatibleWith<RO, F>,
+            MR: OwningMode,
+            R: Borrow<[F]>,
             R: CompatibleWith<MR, F>,
             F: Scalar
         {
@@ -99,7 +106,9 @@ macro_rules! derive_ops {
         impl<L, R, ML, F> ops::$opsname<Dual<R, RO, F>> for &Dual<L, ML, F>
         where
             ML: OwningMode,
+            L: Borrow<[F]>,
             L: CompatibleWith<ML, F>,
+            R: Borrow<[F]>,
             R: CompatibleWith<RO, F>,
             F: Scalar
         {
@@ -116,7 +125,9 @@ macro_rules! derive_ops {
         where
             MR: OwningMode,
             ML: OwningMode,
+            L: Borrow<[F]>,
             L: CompatibleWith<ML, F>,
+            R: Borrow<[F]>,
             R: CompatibleWith<MR, F>,
             F: Scalar
         {
@@ -136,6 +147,7 @@ macro_rules! derive_ops_commut {
 
         impl<L, R, F> ops::$opsname<Dual<R, RW, F>> for Dual<L, RO, F>
         where
+            L: Borrow<[F]>,
             L: CompatibleWith<RO, F>,
             R: BorrowMut<[F]>,
             F: Scalar
@@ -149,6 +161,7 @@ macro_rules! derive_ops_commut {
 
         impl<L, R, F> ops::$opsname<Dual<R, RW, F>> for &Dual<L, RO, F>
         where
+            L: Borrow<[F]>,
             L: CompatibleWith<RO, F>,
             R: BorrowMut<[F]>,
             F: Scalar
@@ -173,6 +186,7 @@ impl<L, R, M, F> ops::AddAssign<&Dual<R, M, F>> for Dual<L, RW, F>
 where
     M: OwningMode,
     L: BorrowMut<[F]>,
+    R: Borrow<[F]>,
     R: CompatibleWith<M, F>,
     F: Scalar
 {
@@ -191,6 +205,7 @@ impl<L, R, M, F> ops::DivAssign<&Dual<R, M, F>> for Dual<L, RW, F>
 where
     M: OwningMode,
     L: BorrowMut<[F]>,
+    R: Borrow<[F]>,
     R: CompatibleWith<M, F>,
     F: Scalar
 {
@@ -208,6 +223,7 @@ where
 
 impl<L, R, F> ops::Div<Dual<R, RW, F>> for Dual<L, RO, F>
 where
+    L: Borrow<[F]>,
     L: CompatibleWith<RO, F>,
     R: BorrowMut<[F]>,
     F: Scalar
@@ -221,6 +237,7 @@ where
 impl<L, R, ML, F> ops::Div<Dual<R, RW, F>> for &Dual<L, ML, F>
 where
     ML: OwningMode,
+    L: Borrow<[F]>,
     L: CompatibleWith<ML, F>,
     R: BorrowMut<[F]>,
     F: Scalar
@@ -245,6 +262,7 @@ impl<L, R, M, F> ops::MulAssign<&Dual<R, M, F>> for Dual<L, RW, F>
 where
     M: OwningMode,
     L: BorrowMut<[F]>,
+    R: Borrow<[F]>,
     R: CompatibleWith<M, F>,
     F: Scalar
 {
@@ -266,6 +284,7 @@ impl<L, R, M, F> ops::SubAssign<&Dual<R, M, F>> for Dual<L, RW, F>
 where
     M: OwningMode,
     L: BorrowMut<[F]>,
+    R: Borrow<[F]>,
     R: CompatibleWith<M, F>,
     F: Scalar
 {
@@ -280,6 +299,7 @@ where
 
 impl<L, R, F> ops::Sub<Dual<R, RW, F>> for Dual<L, RO, F>
 where
+    L: Borrow<[F]>,
     L: CompatibleWith<RO, F>,
     R: BorrowMut<[F]>,
     F: Scalar
@@ -293,6 +313,7 @@ where
 impl<L, R, ML, F> ops::Sub<Dual<R, RW, F>> for &Dual<L, ML, F>
 where
     ML: OwningMode,
+    L: Borrow<[F]>,
     L: CompatibleWith<ML, F>,
     R: BorrowMut<[F]>,
     F: Scalar

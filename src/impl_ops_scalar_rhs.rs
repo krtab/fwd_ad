@@ -29,6 +29,7 @@ macro_rules! derive_ops {
         #[cfg(feature = "implicit-clone")]
         impl<L, F> ops::$opsname<F> for Dual<L, RO, F>
         where
+            L: Borrow<[F]>,
             L: CompatibleWith<RO, F>,
             F: Scalar
         {
@@ -72,6 +73,7 @@ macro_rules! derive_ops_commut {
         #[cfg(feature = "implicit-clone")]
         impl<R> ops::$opsname<Dual<R, RO, f64>> for f64
         where
+            R: Borrow<[f64]>,
             R: CompatibleWith<RO, f64>,
             f64: Scalar
         {
@@ -86,6 +88,7 @@ macro_rules! derive_ops_commut {
         #[cfg(feature = "implicit-clone")]
         impl<R> ops::$opsname<Dual<R, RO, f32>> for f32
         where
+            R: Borrow<[f32]>,
             R: CompatibleWith<RO, f32>,
             f32: Scalar
         {
