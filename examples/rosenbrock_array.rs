@@ -1,8 +1,8 @@
 // Use gradient descent to optimize Rosenbrok's function
 // =====================================================
 
-extern crate smolad;
-use smolad::*;
+extern crate fwd_ad;
+use fwd_ad::*;
 
 // The factor by which we will descend along the gradient.
 // Rosenbrock function is pretty steep so its quite small.

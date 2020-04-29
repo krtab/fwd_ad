@@ -4,7 +4,7 @@ extern crate criterion;
 use criterion::{BatchSize, Criterion};
 use std::time::Duration;
 
-use smolad::Dual;
+use fwd_ad::Dual;
 
 fn bench(c: &mut Criterion) {
     let mut x = Dual::constant(42., 15);

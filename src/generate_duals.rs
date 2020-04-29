@@ -5,8 +5,7 @@
 /// # Examples
 ///
 /// ```
-/// # #[macro_use] extern crate smolad;
-/// # use smolad::*;
+/// # use fwd_ad::*;
 /// # fn main() {
 /// generate_duals!{
 ///     // getdx will get derivatives wrt. x

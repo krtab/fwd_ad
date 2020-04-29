@@ -1,5 +1,5 @@
 [package]
-name = "smolad"
+name = "fwd_ad"
 version = "0.1.0"
 authors = ["Arthur Carcano <arthur.carcano@inria.fr>"]
 edition = "2018"
