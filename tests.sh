@@ -1,3 +1,3 @@
-#!/usr/bin/sh
+#!/bin/sh
 cargo test --verbose
 cargo test --verbose --features implicit-clone
