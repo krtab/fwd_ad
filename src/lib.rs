@@ -216,6 +216,17 @@ where
     {
         Dual::from(self.content.view())
     }
+
+    /// Consumes the `Dual` and return the container inside it.
+    ///
+    /// ```
+    /// # use fwd_ad::*;
+    /// let c = [1.,2.,3.];
+    /// assert_eq!(Dual::<_,RW,_>::from(c.clone()).into_container(), c);
+    /// ```
+    pub fn into_container(self) -> T {
+        self.content
+    }
 }
 
 /// Methods for Duals that own their content
