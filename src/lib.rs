@@ -26,7 +26,7 @@ pub use owning_markers::{CompatibleWith, OwningMode, RO, RW};
 /// ## Create a constant (derivatives equal to zero) dual
 /// A `constant` method is provided for RW `Dual`s backed by a `Vec` or an array (up to size 32).
 /// To prevent cluttering, the array implementations documentation has been hidden.
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Hash, Default)]
 pub struct Dual<T, M, F>
 where
     M: OwningMode,
