@@ -1,4 +1,4 @@
-/// Generate *n* duals with *n* derivatives, one for each varable.
+/// Generate *n* duals (backed by Vec) with *n* derivatives, one for each varable.
 ///
 ///  Can optionally generate a "getter" closure used to get the derivative *with respect* to the variable.
 ///
