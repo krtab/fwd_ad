@@ -326,10 +326,11 @@ derive_ops!(Sub, SubAssign, sub, sub_assign);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::instanciations::vecf64::Owning;
 
     fn generate_pair() -> (Dual<Vec<f64>, RW, f64>, Dual<Vec<f64>, RW, f64>) {
-        let mut y = Dual::constant(42., 3);
-        let mut x = Dual::constant(42., 3);
+        let mut y = Owning::constant(42., 3);
+        let mut x = Owning::constant(42., 3);
         x.diffs_mut()[0] = 17.;
         y.diffs_mut()[1] = -1.;
         x.diffs_mut()[2] = -7.;
@@ -341,41 +342,35 @@ mod tests {
     #[should_panic]
     #[allow(unused_must_use)]
     fn test_diff_panic() {
-        let y = Dual::constant(42., 3);
+        let y = Owning::constant(42., 3);
         let yv = y.view();
-        let x = Dual::constant(42., 2);
+        let x = Owning::constant(42., 2);
         x + yv;
-        let x = Dual::constant(42., 2);
-        x * yv;
-        let x = Dual::constant(42., 2);
-        x / yv;
-        let x = Dual::constant(42., 2);
-        x - yv;
     }
 
     #[test]
     fn test_diff_add_mul() {
-        let mut x = Dual::constant(42., 2);
-        let mut y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let mut y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
         let res = (x + &y) * y;
         assert_eq!(
             res,
-            Dual::from(vec![(42. + 17.) * 17., 17., 2. * 17. + 42.])
+            Owning::from(vec![(42. + 17.) * 17., 17., 2. * 17. + 42.])
         );
     }
 
     #[test]
     fn test_diff_div() {
-        let mut x = Dual::constant(42., 2);
-        let mut y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let mut y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
         let res = x / y;
         assert_eq!(
             res,
-            Dual::from(vec![42. / 17., 1. / 17., -42. / (17. * 17.)])
+            Owning::from(vec![42. / 17., 1. / 17., -42. / (17. * 17.)])
         );
     }
 
@@ -400,8 +395,8 @@ mod tests {
 
     #[test]
     fn test_diff_subneg() {
-        let mut x = Dual::constant(42., 2);
-        let mut y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let mut y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 1.;
         y.diffs_mut()[1] = 1.;
         assert_eq!(x.clone() - y.view(), x + (-y))
@@ -409,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_powd() {
-        let x: Dual<_, RW, f64> = Dual::from(vec![3., 1.]);
+        let x: Dual<_, RW, f64> = Owning::from(vec![3., 1.]);
         assert!(x.clone().powdual(x).is_close(
             &Dual::<_, RW, f64>::from(vec![27., 27. * (3_f64.ln() + 1.)]),
             1e-8

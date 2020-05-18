@@ -149,7 +149,6 @@ derive_ops!(Sub, SubAssign, sub, sub_assign);
 impl<S> ops::Sub<Dual<S, RW, f64>> for f64
 where
     S: RWAble<f64>,
-    f64: Scalar,
 {
     type Output = Dual<S, RW, f64>;
     fn sub(self, mut rhs: Dual<S, RW, f64>) -> Dual<S, RW, f64> {
@@ -163,7 +162,6 @@ where
 impl<S> ops::Sub<Dual<S, RW, f32>> for f32
 where
     S: RWAble<f32>,
-    f32: Scalar,
 {
     type Output = Dual<S, RW, f32>;
     fn sub(self, mut rhs: Dual<S, RW, f32>) -> Dual<S, RW, f32> {
@@ -177,12 +175,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::instanciations::vecf64::Owning;
 
     #[test]
     fn test_scalar_rhs_add_mul() {
-        let mut x = Dual::constant(42., 2);
-        let y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 0.;
         x.diffs_mut()[1] = 1.;
         assert_eq!((x.clone() + &y) * y, (x + 17.) * 17.);
@@ -190,8 +188,8 @@ mod tests {
 
     #[test]
     fn test_scalar_rhs_div() {
-        let mut x = Dual::constant(42., 2);
-        let y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 0.;
         x.diffs_mut()[1] = 1.;
         assert_eq!(x.clone() / y, x / 17.);
@@ -199,8 +197,8 @@ mod tests {
 
     #[test]
     fn test_diff_subneg() {
-        let mut x = Dual::constant(42., 2);
-        let y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 0.;
         x.diffs_mut()[1] = 1.;
         assert_eq!(x.clone() - y, x - 17.)
@@ -208,8 +206,8 @@ mod tests {
 
     #[test]
     fn test_diff_subneg2() {
-        let mut x = Dual::constant(42., 2);
-        let y = Dual::constant(17., 2);
+        let mut x = Owning::constant(42., 2);
+        let y = Owning::constant(17., 2);
         x.diffs_mut()[0] = 0.;
         x.diffs_mut()[1] = 1.;
         assert_eq!(y - x.clone(), 17. - x)

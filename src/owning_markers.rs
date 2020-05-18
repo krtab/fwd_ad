@@ -2,7 +2,7 @@
 //!
 //! These marker types are empty struct, only deriving common traits.
 
-use super::view_and_owning_traits::{ROAble, RWAble};
+use super::{ROAble, RWAble};
 
 /// A type used to indicate read-only capability
 ///

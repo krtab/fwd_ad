@@ -47,6 +47,27 @@ fn main() {
 }
 ```
 
+# Short tutorial
+
+Fdw:AD's main type is the `Dual<Container, OM, F>` struct. This struct is parametrized by three types, which are:
+ 1. `Container` a type indicating what "container" is used to store the struct content. Typical examples include `Vec<F>`, `[F; n]`, `&mut [F]`, or `&[F]`.
+ 2. `OM` an "owning mode" which is one of two possibilities: `RW` for "read-write", indicating that the content of the Dual is write-able and hence can be reused during computations and `RO` indicating that it is read-only.
+ 3. `F` is the scalar type, typically `f32` or `f64`, but you chan choose to use something different.
+
+A `Dual` wraps its container, which must be "read-able as an `[F]`". The first item of this slice of scalars is the dual's actual value and the next ones are the derivative with respect to the successive variables.
+
+To alleviate the burden of writting out long type names, canonical pairs of owning/view duals are defined in the `instanciations` module.
+
+## Fwd:AD Traits
+
+Fwd:AD relies on several traits to be generic enough. Traits a user may need to implement are located in the `traits` module.
+
+ - `ROAble` (resp. `RWAble`) are traits that should be implemented by containers which are able to read (resp. write) their content. All container types must implement `ROAble`. These traits are similar to `AsRef`/`AsMut` from `core` and a blanket implementation is provided.
+ - `ToView` and `ToOwning` are traits that are used to defined correspondances of canonical "owning" (which can be `RW`) and "view" (which only have `RO` capacity) containers.
+ - `Scalar` is the trait representing scalar numbers, it is merely a supertrait for various traits of `num_traits`, so these are what you should seek to implement. 
+
+Caveat: because you can't implement external traits on external types you may find yourself limited in using duals with an uncommon container or scalar type. If so, please contact the maintainer of this crate. 
+
 
 # Comparision with other (forward) AD rust libraries
 

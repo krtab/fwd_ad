@@ -4,11 +4,12 @@ extern crate criterion;
 use criterion::{BatchSize, Criterion};
 use std::time::Duration;
 
+use fwd_ad::instanciations::vecf64::Owning;
 use fwd_ad::Dual;
 
 fn bench(c: &mut Criterion) {
-    let mut x = Dual::constant(42., 15);
-    let mut y = Dual::constant(17., 15);
+    let mut x = Owning::constant(42., 15);
+    let mut y = Owning::constant(17., 15);
     x.diffs_mut()[0] = 1.;
     y.diffs_mut()[1] = 1.;
     c.bench_function("add", move |b| {
@@ -18,8 +19,8 @@ fn bench(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
-    let mut x = Dual::constant(42., 15);
-    let mut y = Dual::constant(17., 15);
+    let mut x = Owning::constant(42., 15);
+    let mut y = Owning::constant(17., 15);
     x.diffs_mut()[0] = 1.;
     y.diffs_mut()[1] = 1.;
     c.bench_function("mul", move |b| {

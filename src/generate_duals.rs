@@ -25,7 +25,7 @@ macro_rules! generate_duals {
         let ndiffs : usize = [$($value),*].len();
         let mut i : usize = 0;
         $(
-            let mut $varname : Dual<Vec<f64>,RW, f64> = Dual::constant($value, ndiffs);
+            let mut $varname = Dual::<Vec<f64>, RW, f64>::constant($value, ndiffs);
             $varname.diffs_mut()[i] = 1.;
 
             $(
