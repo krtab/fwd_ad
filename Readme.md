@@ -88,4 +88,6 @@ The last-update column represent the last time the corresponding crate was check
 1. `descent` Automatic differentiation seems promising but isn't very documented and is mixed-up with the IP-OPT interface
 2. `hyperdual` has similar properties to Fwd:AD, except that all operations will allocate when Fwd:AD tries to reuse existing memory
 
- 
+# Acknowledgments
+
+Fwd:AD is being developped during my PhD in the [InBio](https://research.pasteur.fr/en/team/inbio/) research team, a joint research initiative by [Inria](https://www.inria.fr/en) and [Institut Pasteur](https://www.pasteur.fr/en).
