@@ -1,6 +1,9 @@
 Fwd:AD a crate for Forward Auto-Differentiation
 ===============================================
 
+![CI Pipeline](https://gitlab.inria.fr/InBio/Public/fwd_ad/badges/master/pipeline.svg?style=flat-square)
+![Crates.io](https://img.shields.io/crates/v/fwd_ad?style=flat-square)
+
 This crate allows you to easily write operations on [dual numbers](https://en.wikipedia.org/wiki/Dual_number) and do forward automatic differentiation. It empowers its user to write auto-differentiation code with minimal allocations.
 
 ## Key selling-points
