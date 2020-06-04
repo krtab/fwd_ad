@@ -154,9 +154,11 @@ macro_rules! derive_ops_commut {
             }
         }
 
-        impl<L, R, F> ops::$opsname<Dual<R, RW, F>> for &Dual<L, RO, F>
+        impl<L, R, F, M> ops::$opsname<Dual<R, RW, F>> for &Dual<L, M, F>
         where
+            M: OwningMode,
             L: ROAble<F>,
+            L: CompatibleWith<M, F>,
             R: RWAble<F>,
             F: Scalar,
         {
